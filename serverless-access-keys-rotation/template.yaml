@@ -19,9 +19,18 @@ Resources:
       Runtime: nodejs16.x
       Architectures:
         - x86_64
-      # Policies:
-      # Give the Lambda admin access
-      # - AdministratorAccess
+      Policies:
+        - Statement:
+            - Sid: IAMListUsersPolicy
+              Effect: Allow
+              Action:
+                - iam:ListUsers
+              Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+            - Sid: IAMListAccessKeysPolicy
+              Effect: Allow
+              Action:
+                - - iam:ListAccessKeys
+              Resource: "*"
       Events:
         CloudWatchEvent:
           Type: Schedule # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
