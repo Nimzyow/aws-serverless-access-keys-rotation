@@ -29,7 +29,7 @@ Resources:
             - Sid: IAMListAccessKeysPolicy
               Effect: Allow
               Action:
-                - - iam:ListAccessKeys
+                - iam:ListAccessKeys
               Resource: "*"
       Events:
         CloudWatchEvent:
