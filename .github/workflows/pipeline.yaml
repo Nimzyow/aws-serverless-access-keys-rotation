@@ -103,38 +103,38 @@ jobs:
             --no-fail-on-empty-changeset \
             --role-arn ${TESTING_CLOUDFORMATION_EXECUTION_ROLE}
 
-  build-and-deploy-staging:
-    # this stage is triggered only for feature branches (feature*),
-    # which will build the stack and deploy to a stack named with branch name.
-    if: startsWith(github.ref, 'refs/heads/staging')
-    needs: [test]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-      - uses: aws-actions/setup-sam@v1
-      - run: sam build --template ${SAM_TEMPLATE} --use-container
+  # build-and-deploy-staging:
+  #   # this stage is triggered only for feature branches (feature*),
+  #   # which will build the stack and deploy to a stack named with branch name.
+  #   if: startsWith(github.ref, 'refs/heads/staging')
+  #   needs: [test]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/setup-python@v2
+  #     - uses: aws-actions/setup-sam@v1
+  #     - run: sam build --template ${SAM_TEMPLATE} --use-container
 
-      - name: Assume the testing pipeline user role
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.TESTING_REGION }}
-          role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
-          role-session-name: staging-deployment
-          role-duration-seconds: 3600
-          role-skip-session-tagging: true
+  #     - name: Assume the testing pipeline user role
+  #       uses: aws-actions/configure-aws-credentials@v1
+  #       with:
+  #         aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
+  #         aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
+  #         aws-region: ${{ env.TESTING_REGION }}
+  #         role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
+  #         role-session-name: staging-deployment
+  #         role-duration-seconds: 3600
+  #         role-skip-session-tagging: true
 
-      - name: Deploy to staging stack in the testing account
-        shell: bash
-        run: |
-          sam deploy --stack-name $(echo ${GITHUB_REF##*/} | tr -cd '[a-zA-Z0-9-]') \
-            --capabilities CAPABILITY_IAM \
-            --region ${TESTING_REGION} \
-            --s3-bucket ${TESTING_ARTIFACTS_BUCKET} \
-            --no-fail-on-empty-changeset \
-            --role-arn ${TESTING_CLOUDFORMATION_EXECUTION_ROLE}
+  #     - name: Deploy to staging stack in the testing account
+  #       shell: bash
+  #       run: |
+  #         sam deploy --stack-name $(echo ${GITHUB_REF##*/} | tr -cd '[a-zA-Z0-9-]') \
+  #           --capabilities CAPABILITY_IAM \
+  #           --region ${TESTING_REGION} \
+  #           --s3-bucket ${TESTING_ARTIFACTS_BUCKET} \
+  #           --no-fail-on-empty-changeset \
+  #           --role-arn ${TESTING_CLOUDFORMATION_EXECUTION_ROLE}
 
   build-and-package:
     if: github.ref == 'refs/heads/main'
