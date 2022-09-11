@@ -27,6 +27,11 @@ Resources:
               Action:
                 - iam:ListUsers
               Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+            - Sid: SQSSendMessageToCheckAccessKeyAgeOfUserQueue
+              Effect: Allow
+              Action:
+                - sqs:SendMessage
+              Resource: !Sub "arn:aws:sqs:eu-west-2:${AWS::AccountId}:CheckAccessKeyAgeOfUserQueue"
       Events:
         CloudWatchEvent:
           Type: Schedule # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
