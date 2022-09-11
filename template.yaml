@@ -15,9 +15,10 @@ Globals:
       - x86_64
 
 Resources:
-  UserLookup:
+  UserAccessKeyLookup:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
+      FunctionName: UserLookup
       CodeUri: user-lookup/
       Handler: app.lambdaHandler
       Policies:
@@ -65,13 +66,13 @@ Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  UserLookupFunction:
-    Description: "UserLookup Lambda Function ARN"
-    Value: !GetAtt UserLookup.Arn
-  UserLookupFunctionIamRole:
-    Description: "Implicit IAM Role created for UserLookup function"
-    Value: !GetAtt UserLookup.Arn
+  UserAccessKeyLookupFunction:
+    Description: "UserAccessKeyLookup Lambda Function ARN"
+    Value: !GetAtt UserAccessKeyLookup.Arn
+  UserAccessKeyLookupFunctionIamRole:
+    Description: "Implicit IAM Role created for UserAccessKeyLookup function"
+    Value: !GetAtt UserAccessKeyLookup.Arn
   CheckAccessKeyAgeOfUserQueueURL:
-    Description: "The queue which UserLookup will send to"
+    Description: "The queue which UserAccessKeyLookup will send to"
     Value:
       Ref: "CheckAccessKeyAgeOfUserQueue"
