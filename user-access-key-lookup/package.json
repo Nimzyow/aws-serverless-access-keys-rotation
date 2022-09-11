@@ -8,7 +8,6 @@
   "license": "MIT",
   "dependencies": {
     "aws-sdk": "^2.1213.0",
-    "axios": "^0.27.2",
     "esbuild": "^0.14.14"
   },
   "scripts": {

@@ -1,7 +1,6 @@
 import { ScheduledEvent } from 'aws-lambda';
 
 import AWS from 'aws-sdk';
-import axios from 'axios';
 const iam = new AWS.IAM();
 const sqs = new AWS.SQS();
 
