@@ -1,6 +1,7 @@
 import { ScheduledEvent } from 'aws-lambda';
 
 import AWS from 'aws-sdk';
+import axios from 'axios';
 const iam = new AWS.IAM();
 
 /**
@@ -43,6 +44,8 @@ export const lambdaHandler = async (event: ScheduledEvent) => {
         const listUsers = await iam.listUsers().promise();
 
         listUsers.Users.map((user) => console.log(user.UserName));
+
+        // axios.post()
 
         // listUsers.Users.map(async (user) => {
         //     console.log(user.UserName);
