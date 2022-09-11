@@ -26,11 +26,6 @@ Resources:
               Action:
                 - iam:ListUsers
               Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
-            - Sid: IAMListAccessKeysPolicy
-              Effect: Allow
-              Action:
-                - iam:ListAccessKeys
-              Resource: "*"
       Events:
         CloudWatchEvent:
           Type: Schedule # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
@@ -47,17 +42,17 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - app.ts
-  UserAccessKeyRotationQueue:
+  CheckAccessKeyAgeOfUserQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: UserAccessKeyRotationQueue
+      QueueName: CheckAccessKeyAgeOfUserQueue
       RedrivePolicy:
         deadLetterTargetArn:
           Fn::GetAtt:
-            - "UserAccessKeyRotationDLQ"
+            - "CheckAccessKeyAgeOfUserDLQ"
             - "Arn"
         maxReceiveCount: 5
-  UserAccessKeyRotationDLQ:
+  CheckAccessKeyAgeOfUserDLQ:
     Type: AWS::SQS::Queue
 
 Outputs:
@@ -70,7 +65,7 @@ Outputs:
   UserAccessKeyLookupFunctionIamRole:
     Description: "Implicit IAM Role created for UserAccessKeyLookup function"
     Value: !GetAtt UserAccessKeyLookup.Arn
-  UserAccessKeyRotationQueueURL:
+  CheckAccessKeyAgeOfUserQueueURL:
     Description: "The queue which UserAccessKeyLookup will send to"
     Value:
-      Ref: "UserAccessKeyRotationQueue"
+      Ref: "CheckAccessKeyAgeOfUserQueue"
