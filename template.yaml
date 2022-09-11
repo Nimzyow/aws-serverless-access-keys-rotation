@@ -49,6 +49,39 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - app.ts
+  UserAccessKeyCheck:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      FunctionName: UserAccessKeyLookup
+      CodeUri: user-access-key-lookup/
+      Handler: app.lambdaHandler
+      # Policies:
+      #   - Statement:
+      #       - Sid: IAMListUsersPolicy
+      #         Effect: Allow
+      #         Action:
+      #           - iam:ListUsers
+      #         Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+      #       - Sid: SQSSendMessageToCheckAccessKeyAgeOfUserQueue
+      #         Effect: Allow
+      #         Action:
+      #           - sqs:SendMessage
+      #         Resource: !Sub "arn:aws:sqs:eu-west-2:${AWS::AccountId}:CheckAccessKeyAgeOfUserQueue"
+      Events:
+        CheckAccessKeyAgeOfUserQueue:
+          Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
+          Properties:
+            Queue: !GetAtt CheckAccessKeyAgeOfUserQueue.Arn
+
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - app.ts
+
   CheckAccessKeyAgeOfUserQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -59,6 +92,7 @@ Resources:
             - "CheckAccessKeyAgeOfUserDLQ"
             - "Arn"
         maxReceiveCount: 5
+
   CheckAccessKeyAgeOfUserDLQ:
     Type: AWS::SQS::Queue
 
