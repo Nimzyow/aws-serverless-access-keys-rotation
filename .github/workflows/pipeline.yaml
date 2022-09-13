@@ -5,6 +5,7 @@ on:
     branches:
       - "main"
       - "feature**"
+      - "staging"
   delete:
     branches:
       - "feature**"
