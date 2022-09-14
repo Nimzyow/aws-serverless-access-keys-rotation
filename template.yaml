@@ -28,11 +28,11 @@ Resources:
               Action:
                 - iam:ListUsers
               Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
-            - Sid: SQSSendMessageToCheckAccessKeyAgeOfUserQueue
+            - Sid: SQSSendMessageToUserQueue
               Effect: Allow
               Action:
                 - sqs:SendMessage
-              Resource: !Sub "arn:aws:sqs:eu-west-2:${AWS::AccountId}:CheckAccessKeyAgeOfUserQueue"
+              Resource: !GetAtt UserQueue.Arn
       Events:
         CloudWatchEvent:
           Type: Schedule # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
@@ -68,10 +68,10 @@ Resources:
       #           - sqs:SendMessage
       #         Resource: !Sub "arn:aws:sqs:eu-west-2:${AWS::AccountId}:CheckAccessKeyAgeOfUserQueue"
       Events:
-        CheckAccessKeyAgeOfUserQueue:
+        UserQueue:
           Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
           Properties:
-            Queue: !GetAtt CheckAccessKeyAgeOfUserQueue.Arn
+            Queue: !GetAtt UserQueue.Arn
 
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
@@ -83,30 +83,30 @@ Resources:
           - app.ts
 
   # https://docs.aws.amazon.com/lambda/latest/dg/with-sqs-example-use-app-spec.html
-  CheckAccessKeyAgeOfUserQueue:
+  UserQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: CheckAccessKeyAgeOfUserQueue
+      QueueName: UserQueue
       RedrivePolicy:
-        deadLetterTargetArn: !GetAtt CheckAccessKeyAgeOfUserDLQ.Arn
+        deadLetterTargetArn: !GetAtt UserDLQ.Arn
         maxReceiveCount: 5
-  CheckAccessKeyAgeOfUserDLQ:
+  UserDLQ:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: CheckAccessKeyAgeOfUserQueue
+      QueueName: UserDLQ
       MessageRetentionPeriod: 1209600
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  UserAccessKeyLookupFunction:
-    Description: "UserAccessKeyLookup Lambda Function ARN"
-    Value: !GetAtt UserAccessKeyLookup.Arn
+  UserLookupFunction:
+    Description: "UserLookup Lambda Function ARN"
+    Value: !GetAtt UserLookup.Arn
   UserAccessKeyLookupFunctionIamRole:
     Description: "Implicit IAM Role created for UserAccessKeyLookup function"
     Value: !GetAtt UserAccessKeyLookup.Arn
-  CheckAccessKeyAgeOfUserQueueURL:
+  UserQueueURL:
     Description: "The queue which UserAccessKeyLookup will send to"
     Value:
-      Ref: "CheckAccessKeyAgeOfUserQueue"
+      Ref: "UserQueue"
