@@ -48,7 +48,7 @@ export const lambdaHandler = async (event: ScheduledEvent) => {
 
         while (iterator < end) {
             const params: AWS.SQS.SendMessageRequest = {
-                QueueUrl: 'https://sqs.eu-west-2.amazonaws.com/756188073209/CheckAccessKeyAgeOfUserQueue',
+                QueueUrl: 'https://sqs.eu-west-2.amazonaws.com/756188073209/UserQueue',
                 MessageAttributes: {
                     UserName: {
                         DataType: 'String',
