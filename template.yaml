@@ -15,7 +15,7 @@ Globals:
       - x86_64
 
 Resources:
-  UserAccessKeyLookup:
+  UserLookup:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       FunctionName: UserLookup
@@ -49,7 +49,7 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - app.ts
-  UserAccessKeyCheck:
+  UserAccessKeyLookup:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       FunctionName: UserAccessKeyLookup
@@ -81,21 +81,19 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - app.ts
+
   # https://docs.aws.amazon.com/lambda/latest/dg/with-sqs-example-use-app-spec.html
   CheckAccessKeyAgeOfUserQueue:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: CheckAccessKeyAgeOfUserQueue
       RedrivePolicy:
-        deadLetterTargetArn:
-          Fn::GetAtt:
-            - "CheckAccessKeyAgeOfUserDLQ"
-            - "Arn"
+        deadLetterTargetArn: !GetAtt CheckAccessKeyAgeOfUserDLQ.Arn
         maxReceiveCount: 5
-
   CheckAccessKeyAgeOfUserDLQ:
     Type: AWS::SQS::Queue
     Properties:
+      QueueName: CheckAccessKeyAgeOfUserQueue
       MessageRetentionPeriod: 1209600
 
 Outputs:
