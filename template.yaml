@@ -81,7 +81,7 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - app.ts
-
+  # https://docs.aws.amazon.com/lambda/latest/dg/with-sqs-example-use-app-spec.html
   CheckAccessKeyAgeOfUserQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -95,6 +95,8 @@ Resources:
 
   CheckAccessKeyAgeOfUserDLQ:
     Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function

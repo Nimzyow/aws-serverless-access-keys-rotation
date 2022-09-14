@@ -4,29 +4,29 @@ on:
   push:
     branches:
       - "main"
-      - "staging"
       - "feature**"
+      - "staging"
   delete:
     branches:
       - "feature**"
 
 env:
   PIPELINE_USER_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  PIPELINE_USER_SECRET_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY_SECRET }}
+  PIPELINE_USER_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   SAM_TEMPLATE: template.yaml
-  TESTING_STACK_NAME: serverless-access-keys-rotation
-  TESTING_PIPELINE_EXECUTION_ROLE: arn:aws:iam::756188073209:role/aws-sam-cli-managed-staging-PipelineExecutionRole-4T02DL5ECL0U
-  TESTING_CLOUDFORMATION_EXECUTION_ROLE: arn:aws:iam::756188073209:role/aws-sam-cli-managed-stagi-CloudFormationExecutionR-1XH2POXQ8VUUE
-  TESTING_ARTIFACTS_BUCKET: aws-sam-cli-managed-staging-pipel-artifactsbucket-u1tjxqyth4bo
+  TESTING_STACK_NAME: serverless-access-key-rotation-staging
+  TESTING_PIPELINE_EXECUTION_ROLE: arn:aws:iam::981456390971:role/aws-sam-cli-managed-staging-PipelineExecutionRole-QPVJES7N94LW
+  TESTING_CLOUDFORMATION_EXECUTION_ROLE: arn:aws:iam::981456390971:role/aws-sam-cli-managed-stagi-CloudFormationExecutionR-1V9LHBJRSVMGA
+  TESTING_ARTIFACTS_BUCKET: aws-sam-cli-managed-staging-pipel-artifactsbucket-1v2c7q38487zq
   # If there are functions with "Image" PackageType in your template,
   # uncomment the line below and add "--image-repository ${TESTING_IMAGE_REPOSITORY}" to
   # testing "sam package" and "sam deploy" commands.
   # TESTING_IMAGE_REPOSITORY = '0123456789.dkr.ecr.region.amazonaws.com/repository-name'
   TESTING_REGION: eu-west-2
-  PROD_STACK_NAME: serverless-access-keys-rotation
-  PROD_PIPELINE_EXECUTION_ROLE: arn:aws:iam::756188073209:role/aws-sam-cli-managed-producti-PipelineExecutionRole-QXKVZP81R41B
-  PROD_CLOUDFORMATION_EXECUTION_ROLE: arn:aws:iam::756188073209:role/aws-sam-cli-managed-produ-CloudFormationExecutionR-1OWOIUTL4AMA4
-  PROD_ARTIFACTS_BUCKET: aws-sam-cli-managed-production-pi-artifactsbucket-18dtoq3sudxth
+  PROD_STACK_NAME: serverless-access-key-rotation-production
+  PROD_PIPELINE_EXECUTION_ROLE: arn:aws:iam::756188073209:role/aws-sam-cli-managed-producti-PipelineExecutionRole-1V9IPYNBI7A21
+  PROD_CLOUDFORMATION_EXECUTION_ROLE: arn:aws:iam::756188073209:role/aws-sam-cli-managed-produ-CloudFormationExecutionR-J0J8SQLNBC9J
+  PROD_ARTIFACTS_BUCKET: aws-sam-cli-managed-production-pi-artifactsbucket-1ohdrhltewtob
   # If there are functions with "Image" PackageType in your template,
   # uncomment the line below and add "--image-repository ${PROD_IMAGE_REPOSITORY}" to
   # prod "sam package" and "sam deploy" commands.
@@ -70,10 +70,11 @@ jobs:
             --region ${TESTING_REGION} \
             --no-prompts
 
-  build-and-deploy-feature:
+  build-and-deploy-staging:
     # this stage is triggered only for feature branches (feature*),
     # which will build the stack and deploy to a stack named with branch name.
-    if: startsWith(github.ref, 'refs/heads/feature')
+    # if: startsWith(github.ref, 'refs/heads/staging')
+    if: github.ref == 'refs/heads/staging'
     needs: [test]
     runs-on: ubuntu-latest
     steps:
@@ -93,7 +94,7 @@ jobs:
           role-duration-seconds: 3600
           role-skip-session-tagging: true
 
-      - name: Deploy to feature stack in the testing account
+      - name: Deploy to staging in sandbox account
         shell: bash
         run: |
           sam deploy --stack-name $(echo ${GITHUB_REF##*/} | tr -cd '[a-zA-Z0-9-]') \
@@ -102,39 +103,6 @@ jobs:
             --s3-bucket ${TESTING_ARTIFACTS_BUCKET} \
             --no-fail-on-empty-changeset \
             --role-arn ${TESTING_CLOUDFORMATION_EXECUTION_ROLE}
-
-  # build-and-deploy-staging:
-  #   # this stage is triggered only for feature branches (feature*),
-  #   # which will build the stack and deploy to a stack named with branch name.
-  #   if: startsWith(github.ref, 'refs/heads/staging')
-  #   needs: [test]
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions/setup-python@v2
-  #     - uses: aws-actions/setup-sam@v1
-  #     - run: sam build --template ${SAM_TEMPLATE} --use-container
-
-  #     - name: Assume the testing pipeline user role
-  #       uses: aws-actions/configure-aws-credentials@v1
-  #       with:
-  #         aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
-  #         aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
-  #         aws-region: ${{ env.TESTING_REGION }}
-  #         role-to-assume: ${{ env.TESTING_PIPELINE_EXECUTION_ROLE }}
-  #         role-session-name: staging-deployment
-  #         role-duration-seconds: 3600
-  #         role-skip-session-tagging: true
-
-  #     - name: Deploy to staging stack in the testing account
-  #       shell: bash
-  #       run: |
-  #         sam deploy --stack-name $(echo ${GITHUB_REF##*/} | tr -cd '[a-zA-Z0-9-]') \
-  #           --capabilities CAPABILITY_IAM \
-  #           --region ${TESTING_REGION} \
-  #           --s3-bucket ${TESTING_ARTIFACTS_BUCKET} \
-  #           --no-fail-on-empty-changeset \
-  #           --role-arn ${TESTING_CLOUDFORMATION_EXECUTION_ROLE}
 
   build-and-package:
     if: github.ref == 'refs/heads/main'

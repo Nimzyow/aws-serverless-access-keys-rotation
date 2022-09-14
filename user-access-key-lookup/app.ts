@@ -11,8 +11,16 @@ export const lambdaHandler = async (event: SQSEvent) => {
         console.log(JSON.stringify(event.Records));
         // const listUsers = await iam.listUsers().promise();
 
-        // let iterator = 0;
-        // const end = listUsers.Users.length;
+        let iterator = 0;
+        const end = event.Records.length;
+
+        while (iterator < end) {
+            const listAccessKeysForUser = await iam
+                .listAccessKeys({ UserName: event.Records[iterator].messageAttributes.UserName.stringValue })
+                .promise();
+
+            iterator++;
+        }
 
         // while (iterator < end) {
         //     const params: AWS.SQS.SendMessageRequest = {
