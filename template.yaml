@@ -95,6 +95,8 @@ Resources:
 
   CheckAccessKeyAgeOfUserDLQ:
     Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
