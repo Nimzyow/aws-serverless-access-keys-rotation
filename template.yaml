@@ -63,11 +63,11 @@ Resources:
                 - iam:ListAccessKeys
                 - iam:DeleteAccessKey
               Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
-      #       - Sid: SQSSendMessageToCheckAccessKeyAgeOfUserQueue
-      #         Effect: Allow
-      #         Action:
-      #           - sqs:SendMessage
-      #         Resource: !Sub "arn:aws:sqs:eu-west-2:${AWS::AccountId}:CheckAccessKeyAgeOfUserQueue"
+            - Sid: SQSSendMessageToCheckAccessKeyAgeOfUserQueue
+              Effect: Allow
+              Action:
+                - sqs:SendMessage
+              Resource: !GetAtt UpdateUserAccessKeyQueue.Arn
       Events:
         UserQueue:
           Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
@@ -95,6 +95,19 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: UserDLQ
+      MessageRetentionPeriod: 1209600
+
+  UpdateUserAccessKeyQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: UpdateUserAccessKeyQueue
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt UpdateUserAccessKeyDLQ.Arn
+        maxReceiveCount: 5
+  UpdateUserAccessKeyDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: UpdateUserAccessKeyDLQ
       MessageRetentionPeriod: 1209600
 
 Outputs:

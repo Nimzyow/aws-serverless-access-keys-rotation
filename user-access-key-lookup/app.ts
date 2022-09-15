@@ -1,17 +1,19 @@
-import { SQSEvent } from 'aws-lambda';
+import { Context, SQSEvent } from 'aws-lambda';
 
 import AWS, { IAM } from 'aws-sdk';
 const iam = new AWS.IAM();
-// const sqs = new AWS.SQS();
+const sqs = new AWS.SQS();
 
 const checkKey = async ({
     accessKeyId,
     createDate,
     userName,
+    accountId,
 }: {
     accessKeyId: NonNullable<IAM.AccessKeyMetadata['AccessKeyId']>;
     createDate: NonNullable<IAM.AccessKeyMetadata['CreateDate']>;
     userName: string;
+    accountId: string;
 }) => {
     const diff = new Date().getTime() - createDate.getTime();
     const diffDays = Math.ceil(diff / (1000 * 3600 * 24));
@@ -19,12 +21,24 @@ const checkKey = async ({
 
     if (isTimeToRotateAccessKeys) {
         console.log(userName + 's Access key of ' + accessKeyId + ' REQUIRES rotation');
+        const params: AWS.SQS.SendMessageRequest = {
+            QueueUrl: `https://sqs.eu-west-2.amazonaws.com/${accountId}/UpdateUserAccessKeyQueue`,
+            MessageAttributes: {
+                accessKeyId: {
+                    DataType: 'String',
+                    StringValue: accessKeyId,
+                },
+            },
+            MessageBody: `Rotate ${userName}s access key`,
+        };
+        const response = await sqs.sendMessage(params).promise();
+        console.log('message sent with id of ' + response.MessageId);
     } else {
         console.log(userName + 's Access key of ' + accessKeyId + ' DOES NOT require rotation');
     }
 };
 
-export const lambdaHandler = async (event: SQSEvent) => {
+export const lambdaHandler = async (event: SQSEvent, context: Context) => {
     console.log('UserAccessLookUp started');
     AWS.config.update({ region: 'eu-west-2' });
 
@@ -66,6 +80,7 @@ export const lambdaHandler = async (event: SQSEvent) => {
                             accessKeyId: listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId,
                             createDate: listAccessKeysForUser.AccessKeyMetadata[0].CreateDate,
                             userName: event.Records[iterator].messageAttributes.UserName.stringValue || 'unknown',
+                            accountId: context.invokedFunctionArn.split(':')[4],
                         });
                     } catch (error) {
                         console.log(error);
@@ -85,6 +100,7 @@ export const lambdaHandler = async (event: SQSEvent) => {
                             accessKeyId: listAccessKeysForUser.AccessKeyMetadata[1].AccessKeyId,
                             createDate: listAccessKeysForUser.AccessKeyMetadata[1].CreateDate,
                             userName: event.Records[iterator].messageAttributes.UserName.stringValue || 'unknown',
+                            accountId: context.invokedFunctionArn.split(':')[4],
                         });
                     } catch (error) {
                         console.log(error);
@@ -98,6 +114,7 @@ export const lambdaHandler = async (event: SQSEvent) => {
                     accessKeyId: listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId,
                     createDate: listAccessKeysForUser.AccessKeyMetadata[0].CreateDate,
                     userName: event.Records[iterator].messageAttributes.UserName.stringValue || 'unknown',
+                    accountId: context.invokedFunctionArn.split(':')[4],
                 });
             }
 
