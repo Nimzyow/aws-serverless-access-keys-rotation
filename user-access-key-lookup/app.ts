@@ -13,7 +13,7 @@ const checkKey = async ({
     createDate: NonNullable<IAM.AccessKeyMetadata['CreateDate']>;
     userName: string;
 }) => {
-    const diff = createDate.getTime() - new Date().getTime();
+    const diff = new Date().getTime() - createDate.getTime();
     const diffDays = Math.ceil(diff / (1000 * 3600 * 24));
     const isTimeToRotateAccessKeys = diffDays > 90;
 
