@@ -55,13 +55,14 @@ Resources:
       FunctionName: UserAccessKeyLookup
       CodeUri: user-access-key-lookup/
       Handler: app.lambdaHandler
-      # Policies:
-      #   - Statement:
-      #       - Sid: IAMListUsersPolicy
-      #         Effect: Allow
-      #         Action:
-      #           - iam:ListUsers
-      #         Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+      Policies:
+        - Statement:
+            - Sid: IAMListDeleteUserAccessKeysPolicy
+              Effect: Allow
+              Action:
+                - iam:ListAccessKeys
+                - iam:DeleteAccessKey
+              Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
       #       - Sid: SQSSendMessageToCheckAccessKeyAgeOfUserQueue
       #         Effect: Allow
       #         Action:
