@@ -1,16 +1,34 @@
 import { SQSEvent } from 'aws-lambda';
 
-import AWS from 'aws-sdk';
+import AWS, { IAM } from 'aws-sdk';
 const iam = new AWS.IAM();
-const sqs = new AWS.SQS();
+// const sqs = new AWS.SQS();
+
+const checkKey = async ({
+    accessKeyId,
+    createDate,
+    userName,
+}: {
+    accessKeyId: NonNullable<IAM.AccessKeyMetadata['AccessKeyId']>;
+    createDate: NonNullable<IAM.AccessKeyMetadata['CreateDate']>;
+    userName: string;
+}) => {
+    const diff = createDate.getTime() - new Date().getTime();
+    const diffDays = Math.ceil(diff / (1000 * 3600 * 24));
+    const isTimeToRotateAccessKeys = diffDays > 90;
+
+    if (isTimeToRotateAccessKeys) {
+        console.log(userName + 's Access key of ' + accessKeyId + ' REQUIRES rotation');
+    } else {
+        console.log(userName + 's Access key of ' + accessKeyId + ' DOES NOT require rotation');
+    }
+};
 
 export const lambdaHandler = async (event: SQSEvent) => {
+    console.log('UserAccessLookUp started');
     AWS.config.update({ region: 'eu-west-2' });
 
     try {
-        console.log(JSON.stringify(event.Records));
-        // const listUsers = await iam.listUsers().promise();
-
         let iterator = 0;
         const end = event.Records.length;
 
@@ -19,95 +37,77 @@ export const lambdaHandler = async (event: SQSEvent) => {
                 .listAccessKeys({ UserName: event.Records[iterator].messageAttributes.UserName.stringValue })
                 .promise();
 
+            /**
+             * {"ResponseMetadata":
+             *      {"RequestId":"0ce1f5f1-a9ac-41da-be16-d2aea60769e0"},
+             *      "AccessKeyMetadata":[
+             *          {"UserName":"nimzy","AccessKeyId":"AKIA3AECSJT4VQKUNXWA","Status":"Active",
+             *              "CreateDate":"2021-03-14T09:15:33.000Z"}
+             *       ],
+             * "IsTruncated":false}
+             */
+
+            if (listAccessKeysForUser.AccessKeyMetadata.length > 1) {
+                if (
+                    listAccessKeysForUser.AccessKeyMetadata[0].CreateDate &&
+                    listAccessKeysForUser.AccessKeyMetadata[1].CreateDate &&
+                    listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId &&
+                    listAccessKeysForUser.AccessKeyMetadata[1].AccessKeyId &&
+                    new Date(listAccessKeysForUser.AccessKeyMetadata[0].CreateDate) >
+                        new Date(listAccessKeysForUser.AccessKeyMetadata[1].CreateDate)
+                ) {
+                    try {
+                        await iam
+                            .deleteAccessKey({
+                                AccessKeyId: listAccessKeysForUser.AccessKeyMetadata[1].AccessKeyId,
+                            })
+                            .promise();
+                        checkKey({
+                            accessKeyId: listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId,
+                            createDate: listAccessKeysForUser.AccessKeyMetadata[0].CreateDate,
+                            userName: event.Records[iterator].messageAttributes.UserName.stringValue || 'unknown',
+                        });
+                    } catch (error) {
+                        console.log(error);
+                    }
+                } else if (
+                    listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId &&
+                    listAccessKeysForUser.AccessKeyMetadata[1].AccessKeyId &&
+                    listAccessKeysForUser.AccessKeyMetadata[1].CreateDate
+                ) {
+                    try {
+                        await iam
+                            .deleteAccessKey({
+                                AccessKeyId: listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId,
+                            })
+                            .promise();
+                        checkKey({
+                            accessKeyId: listAccessKeysForUser.AccessKeyMetadata[1].AccessKeyId,
+                            createDate: listAccessKeysForUser.AccessKeyMetadata[1].CreateDate,
+                            userName: event.Records[iterator].messageAttributes.UserName.stringValue || 'unknown',
+                        });
+                    } catch (error) {
+                        console.log(error);
+                    }
+                }
+            } else if (
+                listAccessKeysForUser.AccessKeyMetadata[0].CreateDate &&
+                listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId
+            ) {
+                checkKey({
+                    accessKeyId: listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId,
+                    createDate: listAccessKeysForUser.AccessKeyMetadata[0].CreateDate,
+                    userName: event.Records[iterator].messageAttributes.UserName.stringValue || 'unknown',
+                });
+            }
+
+            // listAccessKeysForUser.AccessKeyMetadata.map((user) => {
+            //     user.CreateDate;
+            // });
+
             iterator++;
         }
-
-        // while (iterator < end) {
-        //     const params: AWS.SQS.SendMessageRequest = {
-        //         QueueUrl: 'https://sqs.eu-west-2.amazonaws.com/756188073209/CheckAccessKeyAgeOfUserQueue',
-        //         MessageAttributes: {
-        //             UserName: {
-        //                 DataType: 'String',
-        //                 StringValue: listUsers.Users[iterator].UserName,
-        //             },
-        //         },
-        //         MessageBody: 'user to check',
-        //     };
-        //     console.log('Begin to send to SQS');
-        //     const response = await sqs.sendMessage(params).promise();
-        //     console.log('message sent with id of ' + response.MessageId);
-        //     iterator++;
-        // }
-
-        // listUsers.Users.map(async (user) => {
-        //     const userName = user.UserName;
-
-        //     const params: AWS.SQS.SendMessageRequest = {
-        //         QueueUrl: 'https://sqs.eu-west-2.amazonaws.com/756188073209/CheckAccessKeyAgeOfUserQueue',
-        //         MessageAttributes: {
-        //             UserName: {
-        //                 DataType: 'String',
-        //                 StringValue: userName,
-        //             },
-        //         },
-        //         MessageBody: 'user to check',
-        //     };
-        //     console.log('Do I get up to this point?');
-        //     try {
-        //         await sqs
-        //             .sendMessage(params, (err, data) => {
-        //                 console.log(err);
-        //                 console.log(data);
-        //             })
-        //             .promise();
-        //         console.log('HELLO?');
-        //     } catch (error) {
-        //         console.log(error);
-        //     }
-        //     // console.log('message sent with ID of ' + response.MessageId);
-        // });
-
-        // axios.post()
-
-        // listUsers.Users.map(async (user) => {
-        //     console.log(user.UserName);
-        //     try {
-        //         console.log('do i even get here?');
-        //         const accessKeys = await iam.listAccessKeys({ UserName: user.UserName }).promise();
-        //         console.log('do i even get there?');
-
-        //         console.log(JSON.stringify(accessKeys));
-        //         accessKeys.AccessKeyMetadata.map((accessKey) => {
-        //             console.log(user.UserName + accessKey.CreateDate);
-        //             if (!accessKey.CreateDate) {
-        //                 return;
-        //             } else {
-        //                 const diff = Math.abs(accessKey.CreateDate.getTime() - new Date().getTime());
-        //                 const diffDays = Math.ceil(diff / (1000 * 3600 * 24));
-
-        //                 const isTimeToRotateAccessKeys = diffDays > 90;
-        //                 if (isTimeToRotateAccessKeys) {
-        //                     console.log(
-        //                         user.UserName + 's Access key of ' + accessKey.AccessKeyId + ' REQUIRES rotation',
-        //                     );
-        //                 } else {
-        //                     console.log(
-        //                         user.UserName +
-        //                             's Access key of ' +
-        //                             accessKey.AccessKeyId +
-        //                             ' DOES NOT require rotation',
-        //                     );
-        //                 }
-        //             }
-        //         });
-        //     } catch (error) {
-        //         console.log(error);
-        //     }
-        // });
-
-        // const listAccessKeys = await iam.listAccessKeys({ UserName: 'nimzy' }).promise();
-        // console.log(JSON.stringify(listAccessKeys.AccessKeyMetadata));
-        // console.log('List Access keys Success');
+        console.log('UserAccessLookUp finished');
     } catch (error) {
         console.log(error);
     }

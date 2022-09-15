@@ -6,13 +6,15 @@ It is security best practice to rotate aws access keys and to get used to rotati
 
 This shortens the period the access keys are active and will reduce business impact if the access keys ever become compromised.
 
+I created another AWS account using organisations which acts as my Sandbox/testing account. The purpose was to deploy a test or staging version of this task to my Sandbox/testing account and deploy the production version to my main account. Really, I just wanted to experiment and play around with using multiple AWS accounts as I've often read it is good practice to have a aws account purely for production purposes and another for testing, through use of aws organisations. So, perfect reason to experiment and see for myself!
+
 ### How do I get set up?
 
 - Install SAM CLI
-
-### Who do I talk to?
-
-- Nima Soufiani
+- Once you have run the `sam pipeline init --bootstrap` command, set your github secrets with:
+  - AWS_ACCESS_KEY_ID
+  - AWS_SECRET_ACCESS_KEY
+    - Note: The above access keys are the sam user that SAM creates for you when you run the above command and answer all the questions. The sam user will already have access keys but you'll need to generate new access keys for this user as there is no way for you to retrieve the secret after access keys are created. So make sure you have sufficient permissions to change an IAM user access keys, such as by giving yourself admin access or by logging in as root user.
 
 ### How to start a SAM project
 
@@ -49,9 +51,17 @@ from the same directory as template.yml
 Note: You will need to run `sam build` to test the lambda function with the most up to date code.<br/>
 Note: use the -e with the path to the event file if you need it.
 
+### Creating the pipeline
+
+You can use SAM to create a guided pipeline file for you to use as a base. Simply run:
+
+`sam pipeline init --bootstrap`
+
+You'll be asked a series of questions such as which CI/CD system you use, what profiles to use to create the SAM user with appropriate permissions etc...
+
 ### task
 
-1. Cloudwatch event triggers lambda every day
+1. Cloudwatch event triggers lambda every day - DONE
 2. lambda function checks users and decides if their access keys are too old
 
 -- Below automatically created by SAM
