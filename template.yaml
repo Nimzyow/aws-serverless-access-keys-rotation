@@ -73,6 +73,30 @@ Resources:
           Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
           Properties:
             Queue: !GetAtt UserQueue.Arn
+  CreateUserAccessKey:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      FunctionName: CreateUserAccessKey
+      CodeUri: create-user-access-key/
+      Handler: app.lambdaHandler
+      # Policies:
+      #   - Statement:
+      #       - Sid: IAMListDeleteUserAccessKeysPolicy
+      #         Effect: Allow
+      #         Action:
+      #           - iam:ListAccessKeys
+      #           - iam:DeleteAccessKey
+      #         Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+      #       - Sid: SQSSendMessageToCheckAccessKeyAgeOfUserQueue
+      #         Effect: Allow
+      #         Action:
+      #           - sqs:SendMessage
+      #         Resource: !GetAtt UpdateUserAccessKeyQueue.Arn
+      Events:
+        UserQueue:
+          Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
+          Properties:
+            Queue: !GetAtt UpdateUserAccessKeyQueue.Arn
 
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
