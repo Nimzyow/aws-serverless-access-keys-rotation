@@ -76,7 +76,7 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                                 AccessKeyId: listAccessKeysForUser.AccessKeyMetadata[1].AccessKeyId,
                             })
                             .promise();
-                        checkKey({
+                        await checkKey({
                             accessKeyId: listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId,
                             createDate: listAccessKeysForUser.AccessKeyMetadata[0].CreateDate,
                             userName: event.Records[iterator].messageAttributes.UserName.stringValue || 'unknown',
@@ -96,7 +96,7 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                                 AccessKeyId: listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId,
                             })
                             .promise();
-                        checkKey({
+                        await checkKey({
                             accessKeyId: listAccessKeysForUser.AccessKeyMetadata[1].AccessKeyId,
                             createDate: listAccessKeysForUser.AccessKeyMetadata[1].CreateDate,
                             userName: event.Records[iterator].messageAttributes.UserName.stringValue || 'unknown',
@@ -110,7 +110,7 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                 listAccessKeysForUser.AccessKeyMetadata[0].CreateDate &&
                 listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId
             ) {
-                checkKey({
+                await checkKey({
                     accessKeyId: listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId,
                     createDate: listAccessKeysForUser.AccessKeyMetadata[0].CreateDate,
                     userName: event.Records[iterator].messageAttributes.UserName.stringValue || 'unknown',
