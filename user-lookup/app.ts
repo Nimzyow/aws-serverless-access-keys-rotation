@@ -27,7 +27,20 @@ const sqs = new AWS.SQS();
  *     |
  *    \ /
  *     |
- * SQS Queue - UpdateUserAccessKeyQueue - receives a message with access key id in message attribute
+ * SQS Queue - UpdateUserAccessKeyQueue - receives a message with access key id in message attribute - DONE
+ *                                      - Include username in message attributes - DONE
+ *     |
+ *     |
+ *    \ /
+ *     |
+ * Lambda - Polls UpdateUserAccessKeyQueue - Creates new access key -> stores it in secrets manager
+ *                                          -> attach policy to secrets manager -> delete old access key
+ *                                          -> send notification to SNS Topic
+ *     |
+ *     |
+ *    \ /
+ *     |
+ * SNS - Topic UpdatedUserAccessKey - SES subscribes to this topic and sends an email to the user.
  */
 
 export const lambdaHandler = async (event: ScheduledEvent, context: Context) => {

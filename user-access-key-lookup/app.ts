@@ -28,6 +28,10 @@ const checkKey = async ({
                     DataType: 'String',
                     StringValue: accessKeyId,
                 },
+                UserName: {
+                    DataType: 'String',
+                    StringValue: userName,
+                },
             },
             MessageBody: `Rotate ${userName}s access key`,
         };
