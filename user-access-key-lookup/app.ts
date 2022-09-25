@@ -24,7 +24,7 @@ const checkKey = async ({
         const params: AWS.SQS.SendMessageRequest = {
             QueueUrl: `https://sqs.eu-west-2.amazonaws.com/${accountId}/UpdateUserAccessKeyQueue`,
             MessageAttributes: {
-                accessKeyId: {
+                AccessKeyId: {
                     DataType: 'String',
                     StringValue: accessKeyId,
                 },

@@ -11,7 +11,7 @@ const sqs = new AWS.SQS();
  *     |
  *    \ /
  *     |
- * Lambda - triggered 1/day by event bridge - lambda list users and send username to SQS queue - DONE
+ * Lambda - UserLookup - triggered 1/day by event bridge - lambda list users and send username to SQS queue - DONE
  *     |
  *     |
  *    \ /
@@ -21,7 +21,7 @@ const sqs = new AWS.SQS();
  *     |
  *    \ /
  *     |
- * Lambda - Polls UserQueue - Checks for age of access key - DONE
+ * Lambda - UserAccessKeyLookup - Polls UserQueue - Checks for age of access key - DONE
  * - if age is < 90 days, return and terminate flow. if > 90 days, send access key id to SQS queue - DONE
  *     |
  *     |
@@ -33,8 +33,10 @@ const sqs = new AWS.SQS();
  *     |
  *    \ /
  *     |
- * Lambda - Polls UpdateUserAccessKeyQueue - Creates new access key -> stores it in secrets manager
- *                                          -> attach policy to secrets manager -> delete old access key
+ * Lambda - CreateUserAccessKey - Polls UpdateUserAccessKeyQueue - Creates new access key - DONE
+ *                                          -> stores it in secrets manager - DONE
+ *                                          -> attach policy to secrets manager - DONE
+ *                                          -> delete old access key
  *                                          -> send notification to SNS Topic
  *     |
  *     |
