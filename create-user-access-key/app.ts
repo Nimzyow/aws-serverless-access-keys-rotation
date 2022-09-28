@@ -80,6 +80,7 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                                 .promise();
                             console.log('Secrets Manager Resource Policy Updated');
                             console.log('Secret Created and Resource Policy Updated');
+                            // TODO: Get old access key and delete it
                         })
                         .catch((error) => {
                             console.log('error creating secret', error);
