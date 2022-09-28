@@ -1,33 +1,28 @@
 import { Context, SQSEvent } from 'aws-lambda';
 
-import AWS, { IAM } from 'aws-sdk';
+import AWS from 'aws-sdk';
 const iam = new AWS.IAM();
 const secretsManager = new AWS.SecretsManager();
 
 export const lambdaHandler = async (event: SQSEvent, context: Context) => {
-    console.log(JSON.stringify(event.Records[0].messageAttributes));
+    const arn = context.invokedFunctionArn.split(':')[4];
 
     let iterator = 0;
     const end = event.Records.length;
     try {
         while (iterator < end) {
-            const createUserAccessKey = await iam
-                .createAccessKey({ UserName: event.Records[iterator].messageAttributes.UserName.stringValue })
-                .promise();
-
-            // console.log(JSON.stringify(createUserAccessKey));
-
-            // store secrets in aws secrets manager
+            const userName = event.Records[iterator].messageAttributes.UserName.stringValue;
+            const createUserAccessKey = await iam.createAccessKey({ UserName: userName }).promise();
             console.log('Getting the secret');
             try {
                 await secretsManager
                     .getSecretValue({
-                        SecretId: `${event.Records[iterator].messageAttributes.UserName.stringValue}-access-key`,
+                        SecretId: `${userName}-access-key`,
                     })
                     .promise();
                 await secretsManager
                     .updateSecret({
-                        SecretId: `${event.Records[iterator].messageAttributes.UserName.stringValue}-access-key`,
+                        SecretId: `${userName}-access-key`,
                         SecretString: JSON.stringify({
                             accessKeyId: createUserAccessKey.AccessKey.AccessKeyId,
                             secretAccessKey: createUserAccessKey.AccessKey.SecretAccessKey,
@@ -35,11 +30,10 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                     })
                     .promise();
             } catch (error) {
-                // if secret does not exist, create it
                 try {
-                    const createUserSecret = await secretsManager
+                    await secretsManager
                         .createSecret({
-                            Name: `${event.Records[iterator].messageAttributes.UserName.stringValue}-access-key`,
+                            Name: `${userName}-access-key`,
                             SecretString: JSON.stringify({
                                 accessKeyId: createUserAccessKey.AccessKey.AccessKeyId,
                                 secretAccessKey: createUserAccessKey.AccessKey.SecretAccessKey,
@@ -47,18 +41,18 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                         })
                         .promise()
                         .then((data) => {
-                            const arn = context.invokedFunctionArn.split(':')[4];
+                            console.log('Secret Created');
                             secretsManager
                                 .putResourcePolicy({
-                                    SecretId: `${event.Records[iterator].messageAttributes.UserName.stringValue}-access-key`,
+                                    SecretId: `${userName}-access-key`,
                                     ResourcePolicy: JSON.stringify({
                                         Version: '2012-10-17',
                                         Statement: [
                                             {
-                                                Sid: 'Enable IAM User Permissions',
+                                                Sid: 'EnableIAMUserPermissions',
                                                 Effect: 'Allow',
                                                 Principal: {
-                                                    AWS: `arn:aws:iam::${arn}:user/${event.Records[iterator].messageAttributes.UserName.stringValue}`,
+                                                    AWS: `arn:aws:iam::${arn}:user/${userName}`,
                                                 },
                                                 Action: [
                                                     'secretsmanager:GetSecretValue',
@@ -69,14 +63,10 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                                                 Resource: data.ARN,
                                             },
                                             {
-                                                Sid: 'allow listing of secrets',
+                                                Sid: 'AllowListingOfSecrets',
                                                 Effect: 'Allow',
                                                 Principal: {
-                                                    AWS: `arn:aws:iam::${
-                                                        context.invokedFunctionArn.split(':')[4]
-                                                    }:user/${
-                                                        event.Records[iterator].messageAttributes.UserName.stringValue
-                                                    }`,
+                                                    AWS: `arn:aws:iam::${arn}:user/${userName}`,
                                                 },
                                                 Action: [
                                                     'secretsmanager:GetRandomPassword',
@@ -88,9 +78,12 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                                     }),
                                 })
                                 .promise();
+                            console.log('Secrets Manager Resource Policy Updated');
+                            console.log('Secret Created and Resource Policy Updated');
+                        })
+                        .catch((error) => {
+                            console.log('error creating secret', error);
                         });
-
-                    console.log(JSON.stringify(createUserSecret));
                 } catch (error) {
                     console.log('Error during creation of secret and attaching resource policy');
                     console.log(error);
