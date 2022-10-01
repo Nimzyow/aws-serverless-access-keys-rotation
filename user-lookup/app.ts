@@ -33,11 +33,18 @@ const sqs = new AWS.SQS();
  *     |
  *    \ /
  *     |
- * Lambda - CreateUserAccessKey - Polls UpdateUserAccessKeyQueue - Creates new access key - DONE
- *                                          -> stores it in secrets manager - DONE
- *                                          -> attach policy to secrets manager - DONE
- *                                          -> delete old access key
- *                                          -> send notification to SNS Topic
+ * Lambda - CreateUserAccessKey - Polls UpdateUserAccessKeyQueue - Create new access key - DONE
+ *                                          -> delete old access key - TO BE DONE IN ANOTHER LAMBDA FUNCTION
+ *                                          -> send notification to SNS Topic - TO BE DONE IN ANOTHER LAMBDA FUNCTION
+ *     |
+ *     |
+ *    \ /
+ *     |
+ * SQS Queue - StoreSecretsQueue - receives a message with: 
+ *                                          secretId
+ *                                          key of accessKeyId - value of accessKeyId
+ *                                          key of secretAccessKey - value of secretAccessKey
+ *
  *     |
  *     |
  *    \ /

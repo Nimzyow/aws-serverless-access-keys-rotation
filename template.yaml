@@ -73,31 +73,68 @@ Resources:
           Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
           Properties:
             Queue: !GetAtt UserQueue.Arn
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - app.ts
   CreateUserAccessKey:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       FunctionName: CreateUserAccessKey
       CodeUri: create-user-access-key/
       Handler: app.lambdaHandler
-      # Policies:
-      #   - Statement:
-      #       - Sid: IAMListDeleteUserAccessKeysPolicy
-      #         Effect: Allow
-      #         Action:
-      #           - iam:ListAccessKeys
-      #           - iam:DeleteAccessKey
-      #         Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
-      #       - Sid: SQSSendMessageToCheckAccessKeyAgeOfUserQueue
-      #         Effect: Allow
-      #         Action:
-      #           - sqs:SendMessage
-      #         Resource: !GetAtt UpdateUserAccessKeyQueue.Arn
+      Policies:
+        - Statement:
+            - Sid: IAMCreateUserAccessKeyPolicy
+              Effect: Allow
+              Action:
+                - iam:CreateAccessKey
+              Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+            - Sid: SQSSendMessageToStoreSecretsQueueQueue
+              Effect: Allow
+              Action:
+                - sqs:SendMessage
+              Resource: !GetAtt StoreSecretsQueue.Arn
       Events:
         UserQueue:
           Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
           Properties:
             Queue: !GetAtt UpdateUserAccessKeyQueue.Arn
-
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - app.ts
+  StoreSecrets:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      FunctionName: StoreSecrets
+      CodeUri: store-secrets/
+      Handler: app.lambdaHandler
+      # Policies:
+      #   - Statement:
+      #       - Sid: IAMCreateUserAccessKeyPolicy
+      #         Effect: Allow
+      #         Action:
+      #           - iam:CreateAccessKey
+      #         Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+      #       - Sid: SQSSendMessageToStoreSecretsQueueQueue
+      #         Effect: Allow
+      #         Action:
+      #           - sqs:SendMessage
+      #         Resource: !GetAtt StoreSecretsQueue.Arn
+      Events:
+        StoreSecretsQueue:
+          Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
+          Properties:
+            Queue: !GetAtt StoreSecretsQueue.Arn
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
       BuildProperties:
@@ -132,6 +169,19 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: UpdateUserAccessKeyDLQ
+      MessageRetentionPeriod: 1209600
+
+  StoreSecretsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: StoreSecretsQueue
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt StoreSecretsQueueDLQ.Arn
+        maxReceiveCount: 5
+  StoreSecretsQueueDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: StoreSecretsQueueDLQ
       MessageRetentionPeriod: 1209600
 
 Outputs:
