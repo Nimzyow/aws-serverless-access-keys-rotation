@@ -40,11 +40,10 @@ const sqs = new AWS.SQS();
  *     |
  *    \ /
  *     |
- * SQS Queue - StoreSecretsQueue - receives a message with: 
+ * SQS Queue - StoreSecretsQueue - receives a message with:
  *                                          secretId
  *                                          key of accessKeyId - value of accessKeyId
  *                                          key of secretAccessKey - value of secretAccessKey
- *
  *     |
  *     |
  *    \ /
