@@ -1,7 +1,6 @@
 import { Context, SQSEvent } from 'aws-lambda';
 
 import AWS from 'aws-sdk';
-const iam = new AWS.IAM();
 
 const secretsManager = new AWS.SecretsManager();
 

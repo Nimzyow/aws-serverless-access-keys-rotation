@@ -41,9 +41,29 @@ const sqs = new AWS.SQS();
  *    \ /
  *     |
  * SQS Queue - StoreSecretsQueue - receives a message with:
- *                                          secretId
- *                                          key of accessKeyId - value of accessKeyId
- *                                          key of secretAccessKey - value of secretAccessKey
+ *                                          secretId - DONE
+ *                                          key of accessKeyId - value of accessKeyId - DONE
+ *                                          key of secretAccessKey - value of secretAccessKey - DONE
+ *     |
+ *     |
+ *    \ /
+ *     |
+ * Lambda - StoreSecrets - Polls StoreSecretsQueue - stores or updates secret with access key - DONE
+ *
+ *     |
+ *     |
+ *    \ /
+ *     |
+ * SQS Queue - DeleteOldAccessKeyQueue - receives a message with:
+ *                                       UserName
+ *     |
+ *     |
+ *    \ /
+ *     |
+ * Lambda - DeleteOldAccessKey - Polls DeleteOldAccessKeyQueue
+ *                              - lookup access keys
+ *                              - delete oldest access key
+ *
  *     |
  *     |
  *    \ /
@@ -52,8 +72,6 @@ const sqs = new AWS.SQS();
  */
 
 export const lambdaHandler = async (event: ScheduledEvent, context: Context) => {
-    AWS.config.update({ region: 'eu-west-2' });
-
     try {
         const listUsers = await iam.listUsers().promise();
 
@@ -63,7 +81,9 @@ export const lambdaHandler = async (event: ScheduledEvent, context: Context) => 
         while (iterator < end) {
             console.log('Begin to send to SQS');
             const params: AWS.SQS.SendMessageRequest = {
-                QueueUrl: `https://sqs.eu-west-2.amazonaws.com/${context.invokedFunctionArn.split(':')[4]}/UserQueue`,
+                QueueUrl: `https://sqs.${event.region}.amazonaws.com/${
+                    context.invokedFunctionArn.split(':')[4]
+                }/UserQueue`,
                 MessageAttributes: {
                     UserName: {
                         DataType: 'String',

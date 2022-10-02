@@ -17,7 +17,7 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
             await sqs
                 .sendMessage({
                     MessageBody: 'User access key created',
-                    QueueUrl: `https://sqs.eu-west-2.amazonaws.com/${arn}/StoreSecretsQueue`,
+                    QueueUrl: `https://sqs.${event.Records[iterator].awsRegion}.amazonaws.com/${arn}/StoreSecretsQueue`,
                     MessageAttributes: {
                         SecretId: {
                             DataType: 'String',

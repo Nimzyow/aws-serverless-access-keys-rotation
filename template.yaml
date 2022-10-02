@@ -112,29 +112,59 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - app.ts
+
   StoreSecrets:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       FunctionName: StoreSecrets
       CodeUri: store-secrets/
       Handler: app.lambdaHandler
-      # Policies:
-      #   - Statement:
-      #       - Sid: IAMCreateUserAccessKeyPolicy
-      #         Effect: Allow
-      #         Action:
-      #           - iam:CreateAccessKey
-      #         Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
-      #       - Sid: SQSSendMessageToStoreSecretsQueueQueue
-      #         Effect: Allow
-      #         Action:
-      #           - sqs:SendMessage
-      #         Resource: !GetAtt StoreSecretsQueue.Arn
+      Policies:
+        - Statement:
+            - Sid: SecretsManagerPolicy
+              Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+                # - secretsmanager:UpdateSecret
+              Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+            # - Sid: SQSSendMessageToStoreSecretsQueueQueue
+            #   Effect: Allow
+            #   Action:
+            #     - sqs:SendMessage
+            #   Resource: !GetAtt StoreSecretsQueue.Arn
       Events:
         StoreSecretsQueue:
           Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
           Properties:
             Queue: !GetAtt StoreSecretsQueue.Arn
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - app.ts
+
+  DeleteOldAccessKey:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: DeleteOldAccessKey
+      CodeUri: delete-old-access-key/
+      Handler: app.lambdaHandler
+      Policies:
+        Statement:
+          - Sid: ListAndDeleteOldAccessKeyPolicy
+            Effect: Allow
+            Action:
+              - iam:ListAccessKeys
+              - iam:DeleteAccessKey
+            Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+      Events:
+        DeleteOldAccessKeyQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt DeleteOldAccessKeyQueue.Arn
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
       BuildProperties:
@@ -182,6 +212,19 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: StoreSecretsQueueDLQ
+      MessageRetentionPeriod: 1209600
+
+  DeleteOldAccessKeyQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: DeleteOldAccessKeyQueue
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DeleteOldAccessKeyQueueDLQ.Arn
+        maxReceiveCount: 5
+  DeleteOldAccessKeyQueueDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: DeleteOldAccessKeyQueueDLQ
       MessageRetentionPeriod: 1209600
 
 Outputs:
