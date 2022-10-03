@@ -5,11 +5,6 @@ import AWS from 'aws-sdk';
 const iam = new AWS.IAM();
 
 export const lambdaHandler = async (event: SQSEvent, context: Context) => {
-    // list access keys of user from Username
-    // sort from newest to oldest
-    // remove newest from list
-    // loop over list and delete access key
-
     let iterator = 0;
     const end = event.Records.length;
 
@@ -19,9 +14,26 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
         try {
             const accessKeysForUser = await iam.listAccessKeys({ UserName: user }).promise();
 
-            console.log(JSON.stringify(accessKeysForUser.AccessKeyMetadata));
+            if (accessKeysForUser.AccessKeyMetadata.length > 0) {
+                const sortedAccessKeys = accessKeysForUser.AccessKeyMetadata.sort((a, b) => {
+                    if (a.CreateDate && b.CreateDate) {
+                        return b.CreateDate.getTime() - a.CreateDate.getTime();
+                    } else {
+                        return 0;
+                    }
+                });
+
+                const accessKeysToDelete = sortedAccessKeys.slice(1);
+
+                for (const accessKey of accessKeysToDelete) {
+                    if (accessKey.AccessKeyId) {
+                        await iam.deleteAccessKey({ AccessKeyId: accessKey.AccessKeyId, UserName: user }).promise();
+                    }
+                }
+            }
         } catch (error) {
             console.log(error);
         }
+        iterator++;
     }
 };
