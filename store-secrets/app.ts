@@ -1,22 +1,36 @@
 import { Context, SQSEvent } from 'aws-lambda';
 
 import AWS from 'aws-sdk';
+// const sqs = new AWS.SQS();
 
 const secretsManager = new AWS.SecretsManager();
 
+// const sendSQSMessage = async ({ region, account, userName }: { region: string; account: string; userName: string }) => {
+//     const params: AWS.SQS.SendMessageRequest = {
+//         QueueUrl: `https://sqs.${region}.amazonaws.com/${account}/DeleteOldAccessKeyQueue`,
+//         MessageAttributes: {
+//             UserName: {
+//                 DataType: 'String',
+//                 StringValue: userName,
+//             },
+//         },
+//         MessageBody: 'Delete old access keys',
+//     };
+//     const response = await sqs.sendMessage(params).promise();
+//     console.log('message sent with id of ' + response.MessageId);
+// };
+
 export const lambdaHandler = async (event: SQSEvent, context: Context) => {
-    const arn = context.invokedFunctionArn.split(':')[4];
+    const account = context.invokedFunctionArn.split(':')[4];
 
     let iterator = 0;
     const end = event.Records.length;
     try {
         while (iterator < end) {
             const SecretId = event.Records[iterator].messageAttributes.SecretId.stringValue;
+            const userName = event.Records[iterator].messageAttributes.Principle.stringValue;
 
-            if (SecretId) {
-                // const createUserAccessKey = await iam.createAccessKey({ UserName: userName }).promise();
-
-                // console.log('Getting the secret');
+            if (SecretId && userName) {
                 const messageAttributesObject = Object.entries(event.Records[iterator].messageAttributes).reduce(
                     (acc, [key, value]) => {
                         if (key === 'SecretId' || key == 'Principle') {
@@ -41,6 +55,11 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                             }),
                         })
                         .promise();
+                    // await sendSQSMessage({
+                    //     account,
+                    //     region: event.Records[iterator].awsRegion,
+                    //     userName,
+                    // });
                 } catch (error) {
                     try {
                         await secretsManager
@@ -63,7 +82,7 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                                                     Sid: 'EnableIAMUserPermissions',
                                                     Effect: 'Allow',
                                                     Principal: {
-                                                        AWS: `arn:aws:iam::${arn}:user/${event.Records[iterator].messageAttributes.Principle}`,
+                                                        AWS: `arn:aws:iam::${account}:user/${event.Records[iterator].messageAttributes.Principle.stringValue}`,
                                                     },
                                                     Action: [
                                                         'secretsmanager:GetSecretValue',
@@ -77,7 +96,7 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                                                     Sid: 'AllowListingOfSecrets',
                                                     Effect: 'Allow',
                                                     Principal: {
-                                                        AWS: `arn:aws:iam::${arn}:user/${event.Records[iterator].messageAttributes.Principle}`,
+                                                        AWS: `arn:aws:iam::${account}:user/${event.Records[iterator].messageAttributes.Principle.stringValue}`,
                                                     },
                                                     Action: [
                                                         'secretsmanager:GetRandomPassword',
@@ -95,7 +114,11 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                             .catch((error) => {
                                 console.log('error creating secret', error);
                             });
-                        // TODO: Get old access key and delete it
+                        // await sendSQSMessage({
+                        //     account,
+                        //     region: event.Records[iterator].awsRegion,
+                        //     userName,
+                        // });
                     } catch (error) {
                         console.log('Error during creation of secret and attaching resource policy');
                         console.log(error);

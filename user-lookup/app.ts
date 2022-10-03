@@ -34,8 +34,7 @@ const sqs = new AWS.SQS();
  *    \ /
  *     |
  * Lambda - CreateUserAccessKey - Polls UpdateUserAccessKeyQueue - Create new access key - DONE
- *                                          -> delete old access key - TO BE DONE IN ANOTHER LAMBDA FUNCTION
- *                                          -> send notification to SNS Topic - TO BE DONE IN ANOTHER LAMBDA FUNCTION
+ *     |
  *     |
  *     |
  *    \ /
@@ -54,21 +53,21 @@ const sqs = new AWS.SQS();
  *     |
  *    \ /
  *     |
- * SQS Queue - DeleteOldAccessKeyQueue - receives a message with:
- *                                       UserName
+ * SNS - Topic UpdatedUserAccessKey - SES subscribes to this topic and sends an email to the user.
+ *
+ *     |                                                                                      |
+ *     |                                                                                      |
+ *    \ /                                                                                    \ /
+ *     |                                                                                      |
+ * SQS Queue - DeleteOldAccessKeyQueue - receives a message with:                     Simple email service
+ *                                       UserName - Done
  *     |
  *     |
  *    \ /
  *     |
  * Lambda - DeleteOldAccessKey - Polls DeleteOldAccessKeyQueue
- *                              - lookup access keys
- *                              - delete oldest access key
- *
- *     |
- *     |
- *    \ /
- *     |
- * SNS - Topic UpdatedUserAccessKey - SES subscribes to this topic and sends an email to the user.
+ *                              - lookup access keys - DONE
+ *                              - delete oldest access key - DONE
  */
 
 export const lambdaHandler = async (event: ScheduledEvent, context: Context) => {

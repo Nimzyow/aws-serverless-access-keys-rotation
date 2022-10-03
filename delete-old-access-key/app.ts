@@ -9,10 +9,10 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
     const end = event.Records.length;
 
     while (iterator < end) {
-        const user = event.Records[0].messageAttributes.UserName.stringValue;
+        const userName = event.Records[0].messageAttributes.UserName.stringValue;
 
         try {
-            const accessKeysForUser = await iam.listAccessKeys({ UserName: user }).promise();
+            const accessKeysForUser = await iam.listAccessKeys({ UserName: userName }).promise();
 
             if (accessKeysForUser.AccessKeyMetadata.length > 0) {
                 const sortedAccessKeys = accessKeysForUser.AccessKeyMetadata.sort((a, b) => {
@@ -27,7 +27,7 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
 
                 for (const accessKey of accessKeysToDelete) {
                     if (accessKey.AccessKeyId) {
-                        await iam.deleteAccessKey({ AccessKeyId: accessKey.AccessKeyId, UserName: user }).promise();
+                        await iam.deleteAccessKey({ AccessKeyId: accessKey.AccessKeyId, UserName: userName }).promise();
                     }
                 }
             }
