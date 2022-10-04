@@ -161,10 +161,10 @@ Resources:
               - iam:DeleteAccessKey
             Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
       Events:
-        DeleteOldAccessKeyQueue:
-          Type: SQS
+        SnsSubscription:
+          Type: SNS
           Properties:
-            Queue: !GetAtt DeleteOldAccessKeyQueue.Arn
+            Topic: !Ref UpdatedAccessKeyAndStoredSecretSNSTopic
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
       BuildProperties:
@@ -213,6 +213,18 @@ Resources:
     Properties:
       QueueName: StoreSecretsQueueDLQ
       MessageRetentionPeriod: 1209600
+
+  UpdatedAccessKeyAndStoredSecretSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: UpdatedAccessKeyAndStoredSecret
+      DisplayName: UpdatedAccessKeyAndStoredSecret
+
+    # Properties:
+    #   QueueName: StoreSecretsQueue
+    #   RedrivePolicy:
+    #     deadLetterTargetArn: !GetAtt StoreSecretsQueueDLQ.Arn
+    #     maxReceiveCount: 5
 
   DeleteOldAccessKeyQueue:
     Type: AWS::SQS::Queue
