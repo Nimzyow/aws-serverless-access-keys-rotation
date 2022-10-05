@@ -59,13 +59,13 @@ const sqs = new AWS.SQS();
  *     |                                                                                      |
  *    \ /                                                                                    \ /
  *     |                                                                                      |
- * SQS Queue - DeleteOldAccessKeyQueue - receives a message with:                     Simple email service
- *                                       UserName - Done
- *     |
- *     |
- *    \ /
- *     |
- * Lambda - DeleteOldAccessKey - Polls DeleteOldAccessKeyQueue
+ * SQS Queue - DeleteOldAccessKeyQueue - receives a message with:                     SQS Queue - SendEmailQueue - receives a message with:
+ *                                       UserName - Done                              UserName
+ *     |                                                                                  |
+ *     |                                                                                  |
+ *    \ /                                                                                \ /
+ *     |                                                                                  |
+ * Lambda - DeleteOldAccessKey - Polls DeleteOldAccessKeyQueue                      Lambda - SendEmail - Polls SendEmailQueue
  *                              - lookup access keys - DONE
  *                              - delete oldest access key - DONE
  */

@@ -214,18 +214,6 @@ Resources:
       QueueName: StoreSecretsQueueDLQ
       MessageRetentionPeriod: 1209600
 
-  UpdatedAccessKeyAndStoredSecretSNSTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      TopicName: UpdatedAccessKeyAndStoredSecret
-      DisplayName: UpdatedAccessKeyAndStoredSecret
-
-    # Properties:
-    #   QueueName: StoreSecretsQueue
-    #   RedrivePolicy:
-    #     deadLetterTargetArn: !GetAtt StoreSecretsQueueDLQ.Arn
-    #     maxReceiveCount: 5
-
   DeleteOldAccessKeyQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -238,6 +226,36 @@ Resources:
     Properties:
       QueueName: DeleteOldAccessKeyQueueDLQ
       MessageRetentionPeriod: 1209600
+
+  SendEmailQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: SendEmailQueue
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt SendEmailQueueDLQ.Arn
+        maxReceiveCount: 5
+  SendEmailQueueDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: SendEmailQueueDLQ
+      MessageRetentionPeriod: 1209600
+
+  UpdatedAccessKeyAndStoredSecretSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: UpdatedAccessKeyAndStoredSecret
+      DisplayName: UpdatedAccessKeyAndStoredSecret
+      Subscription:
+        - Endpoint: !GetAtt SendEmailQueue.Arn
+          Protocol: sqs
+
+  UserTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: User
+      PrimaryKey:
+        Type: String
+        Name: name
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
