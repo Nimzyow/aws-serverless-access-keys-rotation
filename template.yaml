@@ -112,6 +112,37 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - app.ts
+  SendEmail:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: SendEmail
+      CodeUri: send-email/
+      Handler: app.lambdaHandler
+      Policies:
+        - Statement:
+            - Sid: SESSendEmailPolicy
+              Effect: Allow
+              Action:
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource: "*"
+              Condition:
+                ForAllValues:StringLike:
+                  ses:Recipients:
+                    - "*@rippleenergy.com"
+      Events:
+        StoreSecretsQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt StoreSecretsQueue.Arn
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - app.ts
 
   StoreSecrets:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
