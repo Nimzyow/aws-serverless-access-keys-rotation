@@ -1,47 +1,47 @@
-import { Context, SQSEvent } from 'aws-lambda';
+import { Context, SQSEvent } from "aws-lambda"
 
-import AWS from 'aws-sdk';
-const iam = new AWS.IAM();
-const sqs = new AWS.SQS();
+import AWS from "aws-sdk"
+const iam = new AWS.IAM()
+const sqs = new AWS.SQS()
 
 export const lambdaHandler = async (event: SQSEvent, context: Context) => {
-    const awsAccountId = context.invokedFunctionArn.split(':')[4];
+    const awsAccountId = context.invokedFunctionArn.split(":")[4]
 
-    let iterator = 0;
-    const end = event.Records.length;
+    let iterator = 0
+    const end = event.Records.length
 
     while (iterator < end) {
-        const userName = event.Records[iterator].messageAttributes.UserName.stringValue;
+        const userName = event.Records[iterator].messageAttributes.UserName.stringValue
         try {
-            const createUserAccessKey = await iam.createAccessKey({ UserName: userName }).promise();
+            const createUserAccessKey = await iam.createAccessKey({ UserName: userName }).promise()
             await sqs
                 .sendMessage({
-                    MessageBody: 'User access key created',
+                    MessageBody: "User access key created",
                     QueueUrl: `https://sqs.${event.Records[iterator].awsRegion}.amazonaws.com/${awsAccountId}/StoreSecretsQueue`,
                     MessageAttributes: {
                         SecretId: {
-                            DataType: 'String',
+                            DataType: "String",
                             StringValue: `${userName}-access-key`,
                         },
                         Principle: {
-                            DataType: 'String',
+                            DataType: "String",
                             StringValue: `${userName}`,
                         },
                         AccessKeyId: {
-                            DataType: 'String',
+                            DataType: "String",
                             StringValue: createUserAccessKey.AccessKey.AccessKeyId,
                         },
                         SecretAccessKey: {
-                            DataType: 'String',
+                            DataType: "String",
                             StringValue: createUserAccessKey.AccessKey.SecretAccessKey,
                         },
                     },
                 })
-                .promise();
+                .promise()
         } catch (error) {
-            console.log(error);
-            throw new Error("Couldn't create user access key");
+            console.log(error)
+            throw new Error("Couldn't create user access key")
         }
-        iterator++;
+        iterator++
     }
-};
+}
