@@ -33,6 +33,7 @@ export const lambdaHandler = async (event: SNSEvent, context: Context) => {
             }
         } catch (error) {
             console.log(error);
+            throw new Error("Couldn't delete old access keys");
         }
         iterator++;
     }

@@ -40,6 +40,7 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                 .promise();
         } catch (error) {
             console.log(error);
+            throw new Error("Couldn't create user access key");
         }
         iterator++;
     }

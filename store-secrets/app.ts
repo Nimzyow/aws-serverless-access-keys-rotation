@@ -66,66 +66,64 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                 });
             } catch (error) {
                 try {
-                    await secretsManager
+                    const secretsManagerResponse = await secretsManager
                         .createSecret({
                             Name: SecretId,
                             SecretString: JSON.stringify({
                                 messageAttributesObject,
                             }),
                         })
-                        .promise()
-                        .then((data) => {
-                            console.log('Secret Created');
-                            secretsManager
-                                .putResourcePolicy({
-                                    SecretId,
-                                    ResourcePolicy: JSON.stringify({
-                                        Version: '2012-10-17',
-                                        Statement: [
-                                            {
-                                                Sid: 'EnableIAMUserPermissions',
-                                                Effect: 'Allow',
-                                                Principal: {
-                                                    AWS: `arn:aws:iam::${account}:user/${event.Records[iterator].messageAttributes.Principle.stringValue}`,
-                                                },
-                                                Action: [
-                                                    'secretsmanager:GetSecretValue',
-                                                    'secretsmanager:DescribeSecret',
-                                                    'secretsmanager:ListSecretVersionIds',
-                                                    'secretsmanager:GetResourcePolicy',
-                                                ],
-                                                Resource: data.ARN,
-                                            },
-                                            {
-                                                Sid: 'AllowListingOfSecrets',
-                                                Effect: 'Allow',
-                                                Principal: {
-                                                    AWS: `arn:aws:iam::${account}:user/${event.Records[iterator].messageAttributes.Principle.stringValue}`,
-                                                },
-                                                Action: [
-                                                    'secretsmanager:GetRandomPassword',
-                                                    'secretsmanager:ListSecrets',
-                                                ],
-                                                Resource: '*',
-                                            },
+                        .promise();
+
+                    await secretsManager
+                        .putResourcePolicy({
+                            SecretId,
+                            ResourcePolicy: JSON.stringify({
+                                Version: '2012-10-17',
+                                Statement: [
+                                    {
+                                        Sid: 'EnableIAMUserPermissions',
+                                        Effect: 'Allow',
+                                        Principal: {
+                                            AWS: `arn:aws:iam::${account}:user/${event.Records[iterator].messageAttributes.Principle.stringValue}`,
+                                        },
+                                        Action: [
+                                            'secretsmanager:GetSecretValue',
+                                            'secretsmanager:DescribeSecret',
+                                            'secretsmanager:ListSecretVersionIds',
+                                            'secretsmanager:GetResourcePolicy',
                                         ],
-                                    }),
-                                })
-                                .promise();
-                            console.log('Secrets Manager Resource Policy Updated');
-                            console.log('Secret Created and Resource Policy Updated');
+                                        Resource: secretsManagerResponse.ARN,
+                                    },
+                                    {
+                                        Sid: 'AllowListingOfSecrets',
+                                        Effect: 'Allow',
+                                        Principal: {
+                                            AWS: `arn:aws:iam::${account}:user/${event.Records[iterator].messageAttributes.Principle.stringValue}`,
+                                        },
+                                        Action: ['secretsmanager:GetRandomPassword', 'secretsmanager:ListSecrets'],
+                                        Resource: '*',
+                                    },
+                                ],
+                            }),
                         })
-                        .catch((error) => {
-                            console.log('error creating secret', error);
-                        });
+                        .promise();
+                    console.log('Secret Created');
+                    console.log('Secrets Manager Resource Policy Updated');
+                    console.log('Secret Created and Resource Policy Updated');
+                } catch (error) {
+                    console.log('error creating secret and attach policy', error);
+                    throw new Error("Couldn't create secret");
+                }
+                try {
                     await sendSNSNotification({
                         account,
                         region: event.Records[iterator].awsRegion,
                         userName,
                     });
                 } catch (error) {
-                    console.log('Error during creation of secret and attaching resource policy');
-                    console.log(error);
+                    console.log("Couldn't send notification", error);
+                    throw new Error("Couldn't send notification");
                 }
             }
         }
