@@ -7,16 +7,16 @@ const secretsManager = new AWS.SecretsManager();
 
 const sendSNSNotification = async ({
     region,
-    account,
+    awsAccountId,
     userName,
 }: {
     region: string;
-    account: string;
+    awsAccountId: string;
     userName: string;
 }) => {
     const snsParams = {
         Message: `User ${userName} has been updated`,
-        TopicArn: `arn:aws:sns:${region}:${account}:UpdatedAccessKeyAndStoredSecret`,
+        TopicArn: `arn:aws:sns:${region}:${awsAccountId}:UpdatedAccessKeyAndStoredSecret`,
     };
 
     const response = await sns.publish(snsParams).promise();
@@ -25,7 +25,7 @@ const sendSNSNotification = async ({
 };
 
 export const lambdaHandler = async (event: SQSEvent, context: Context) => {
-    const account = context.invokedFunctionArn.split(':')[4];
+    const awsAccountId = context.invokedFunctionArn.split(':')[4];
 
     let iterator = 0;
     const end = event.Records.length;
@@ -60,7 +60,7 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                     })
                     .promise();
                 await sendSNSNotification({
-                    account,
+                    awsAccountId,
                     region: event.Records[iterator].awsRegion,
                     userName,
                 });
@@ -85,7 +85,7 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                                         Sid: 'EnableIAMUserPermissions',
                                         Effect: 'Allow',
                                         Principal: {
-                                            AWS: `arn:aws:iam::${account}:user/${event.Records[iterator].messageAttributes.Principle.stringValue}`,
+                                            AWS: `arn:aws:iam::${awsAccountId}:user/${event.Records[iterator].messageAttributes.Principle.stringValue}`,
                                         },
                                         Action: [
                                             'secretsmanager:GetSecretValue',
@@ -99,7 +99,7 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                                         Sid: 'AllowListingOfSecrets',
                                         Effect: 'Allow',
                                         Principal: {
-                                            AWS: `arn:aws:iam::${account}:user/${event.Records[iterator].messageAttributes.Principle.stringValue}`,
+                                            AWS: `arn:aws:iam::${awsAccountId}:user/${event.Records[iterator].messageAttributes.Principle.stringValue}`,
                                         },
                                         Action: ['secretsmanager:GetRandomPassword', 'secretsmanager:ListSecrets'],
                                         Resource: '*',
@@ -117,7 +117,7 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                 }
                 try {
                     await sendSNSNotification({
-                        account,
+                        awsAccountId,
                         region: event.Records[iterator].awsRegion,
                         userName,
                     });

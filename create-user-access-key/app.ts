@@ -5,7 +5,7 @@ const iam = new AWS.IAM();
 const sqs = new AWS.SQS();
 
 export const lambdaHandler = async (event: SQSEvent, context: Context) => {
-    const arn = context.invokedFunctionArn.split(':')[4];
+    const awsAccountId = context.invokedFunctionArn.split(':')[4];
 
     let iterator = 0;
     const end = event.Records.length;
@@ -17,7 +17,7 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
             await sqs
                 .sendMessage({
                     MessageBody: 'User access key created',
-                    QueueUrl: `https://sqs.${event.Records[iterator].awsRegion}.amazonaws.com/${arn}/StoreSecretsQueue`,
+                    QueueUrl: `https://sqs.${event.Records[iterator].awsRegion}.amazonaws.com/${awsAccountId}/StoreSecretsQueue`,
                     MessageAttributes: {
                         SecretId: {
                             DataType: 'String',

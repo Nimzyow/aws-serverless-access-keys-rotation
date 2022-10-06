@@ -1,11 +1,11 @@
-import { Context, SQSEvent } from 'aws-lambda';
+import { SQSEvent } from 'aws-lambda';
 
 import AWS from 'aws-sdk';
 import { PromiseResult } from 'aws-sdk/lib/request';
 const ses = new AWS.SES();
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
-export const lambdaHandler = async (event: SQSEvent, context: Context) => {
+export const lambdaHandler = async (event: SQSEvent) => {
     let iterator = 0;
     const end = event.Records.length;
 
@@ -21,7 +21,6 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                     },
                 })
                 .promise();
-            console.log(user);
         } catch (error) {
             console.log(error);
             throw new Error(`Couldn't get user: ${userName} from dynamodb`);
