@@ -1,10 +1,10 @@
-import { Context, SNSEvent } from 'aws-lambda';
+import { SNSEvent } from 'aws-lambda';
 
 import AWS from 'aws-sdk';
 
 const iam = new AWS.IAM();
 
-export const lambdaHandler = async (event: SNSEvent, context: Context) => {
+export const lambdaHandler = async (event: SNSEvent) => {
     let iterator = 0;
     const end = event.Records.length;
 
