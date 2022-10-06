@@ -295,10 +295,38 @@ Outputs:
   UserLookupFunction:
     Description: "UserLookup Lambda Function ARN"
     Value: !GetAtt UserLookup.Arn
-  UserAccessKeyLookupFunctionIamRole:
-    Description: "Implicit IAM Role created for UserAccessKeyLookup function"
+  UserAccessKeyLookupFunction:
+    Description: "UserAccessKeyLookup Lambda Function ARN"
     Value: !GetAtt UserAccessKeyLookup.Arn
+  CreateUserAccessKeyFunction:
+    Description: "CreateUserAccessKey Lambda Function ARN"
+    Value: !GetAtt CreateUserAccessKey.Arn
+  StoreSecretsFunction:
+    Description: "StoreSecrets Lambda Function ARN"
+    Value: !GetAtt StoreSecrets.Arn
+  DeleteOldAccessKeyFunction:
+    Description: "DeleteOldAccessKey Lambda Function ARN"
+    Value: !GetAtt DeleteOldAccessKey.Arn
+  SendEmailFunction:
+    Description: "SendEmail Lambda Function ARN"
+    Value: !GetAtt SendEmail.Arn
   UserQueueURL:
-    Description: "The queue which UserAccessKeyLookup will send to"
+    Description: "The queue which UserLookup will send a message to"
     Value:
       Ref: "UserQueue"
+  UpdateUserAccessKeyQueueURL:
+    Description: "The queue which UserAccessKeyLookup will send a message to"
+    Value:
+      Ref: "UpdateUserAccessKeyQueue"
+  StoreSecretsQueueURL:
+    Description: "The queue which CreateUserAccessKey will send a message to"
+    Value:
+      Ref: "StoreSecretsQueue"
+  DeleteOldAccessKeyQueueURL:
+    Description: "The queue which SNS topic UpdatedUserAccessKey will send a message to"
+    Value:
+      Ref: "DeleteOldAccessKeyQueue"
+  SendEmailQueueURL:
+    Description: "The queue which SNS topic UpdatedUserAccessKey will send a message to"
+    Value:
+      Ref: "SendEmailQueue"
