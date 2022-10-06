@@ -130,6 +130,11 @@ Resources:
                 ForAllValues:StringLike:
                   ses:Recipients:
                     - "*@rippleenergy.com"
+            - Sid: GetItemFromUserTable
+              Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt UserTable.Arn
       Events:
         StoreSecretsQueue:
           Type: SQS
@@ -156,13 +161,16 @@ Resources:
               Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-                # - secretsmanager:UpdateSecret
+                - secretsmanager:UpdateSecret
+                - secretsmanager:CreateSecret
+                - secretsmanager:PutResourcePolicy
               Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
-            # - Sid: SQSSendMessageToStoreSecretsQueueQueue
-            #   Effect: Allow
-            #   Action:
-            #     - sqs:SendMessage
-            #   Resource: !GetAtt StoreSecretsQueue.Arn
+            - Sid: SNSSendNotificationPolicy
+              Effect: Allow
+              Action:
+                - sns:Publish
+              Resource: !Ref UpdatedAccessKeyAndStoredSecretSNSTopic #https://aws.amazon.com/premiumsupport/knowledge-center/sqs-sns-subscribe-cloudformation/
+
       Events:
         StoreSecretsQueue:
           Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
@@ -195,7 +203,7 @@ Resources:
         SnsSubscription:
           Type: SNS
           Properties:
-            Topic: !Ref UpdatedAccessKeyAndStoredSecretSNSTopic
+            Topic: !Ref UpdatedAccessKeyAndStoredSecretSNSTopic #https://aws.amazon.com/premiumsupport/knowledge-center/sqs-sns-subscribe-cloudformation/
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
       BuildProperties:
