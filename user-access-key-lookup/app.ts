@@ -98,6 +98,9 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                 listAccessKeysForUser.AccessKeyMetadata[1].CreateDate
             ) {
                 try {
+                    console.log(JSON.stringify(listAccessKeysForUser))
+                    console.log(JSON.stringify(listAccessKeysForUser.AccessKeyMetadata[0]))
+                    console.log(JSON.stringify(listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId))
                     await iam
                         .deleteAccessKey({
                             AccessKeyId: listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId,
