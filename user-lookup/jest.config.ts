@@ -4,12 +4,20 @@
  */
 
 export default {
-    transform: {
-        '^.+\\.ts?$': 'esbuild-jest',
+    preset: "ts-jest",
+    testEnvironment: "jsdom",
+    globals: {
+        "ts-jest": {
+            tsconfig: "./tsconfig.json",
+        },
     },
+    transform: {
+        "^.+\\.ts?$": "esbuild-jest",
+    },
+    verbose: true,
     clearMocks: true,
     collectCoverage: true,
-    coverageDirectory: 'coverage',
-    coverageProvider: 'v8',
-    testMatch: ['**/tests/unit/*.test.ts'],
-};
+    coverageDirectory: "coverage",
+    coverageProvider: "v8",
+    testMatch: ["**/tests/unit/*.test.ts"],
+}
