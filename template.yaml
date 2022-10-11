@@ -57,11 +57,10 @@ Resources:
       Handler: app.lambdaHandler
       Policies:
         Statement:
-          - Sid: IAMListDeleteUserAccessKeysPolicy
+          - Sid: IAMListUserAccessKeysPolicy
             Effect: Allow
             Action:
               - iam:ListAccessKeys
-              - iam:DeleteAccessKey
             Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
           - Sid: SQSSendMessageToCheckAccessKeyAgeOfUserQueue
             Effect: Allow
@@ -170,7 +169,6 @@ Resources:
               Action:
                 - sns:Publish
               Resource: !Ref UpdatedAccessKeyAndStoredSecretSNSTopic #https://aws.amazon.com/premiumsupport/knowledge-center/sqs-sns-subscribe-cloudformation/
-
       Events:
         StoreSecretsQueue:
           Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule

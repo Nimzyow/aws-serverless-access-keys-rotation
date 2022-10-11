@@ -5,44 +5,43 @@ import { PromiseResult } from "aws-sdk/lib/request"
 const iam = new AWS.IAM()
 const sqs = new AWS.SQS()
 
-const checkKey = async ({
-    accessKeyId,
+const isKeyOutOfDate = ({
     createDate,
-    userName,
-    awsAccountId,
-    region,
 }: {
-    accessKeyId: NonNullable<IAM.AccessKeyMetadata["AccessKeyId"]>
     createDate: NonNullable<IAM.AccessKeyMetadata["CreateDate"]>
-    userName: string
-    awsAccountId: string
-    region: string
 }) => {
     const diff = new Date().getTime() - createDate.getTime()
     const diffDays = Math.ceil(diff / (1000 * 3600 * 24))
-    const isTimeToRotateAccessKeys = diffDays > 90
+    return diffDays > 90
+}
 
-    if (isTimeToRotateAccessKeys) {
-        console.log(userName + "s Access key of " + accessKeyId + " REQUIRES rotation")
-        const params: AWS.SQS.SendMessageRequest = {
-            QueueUrl: `https://sqs.${region}.amazonaws.com/${awsAccountId}/UpdateUserAccessKeyQueue`,
-            MessageAttributes: {
-                AccessKeyId: {
-                    DataType: "String",
-                    StringValue: accessKeyId,
-                },
-                UserName: {
-                    DataType: "String",
-                    StringValue: userName,
-                },
+const sendMessage = async ({
+    accessKeyId,
+    userName,
+    region,
+    awsAccountId,
+}: {
+    accessKeyId: NonNullable<IAM.AccessKeyMetadata["AccessKeyId"]>
+    userName: string
+    region: string
+    awsAccountId: string
+}) => {
+    const params: AWS.SQS.SendMessageRequest = {
+        QueueUrl: `https://sqs.${region}.amazonaws.com/${awsAccountId}/UpdateUserAccessKeyQueue`,
+        MessageAttributes: {
+            AccessKeyId: {
+                DataType: "String",
+                StringValue: accessKeyId,
             },
-            MessageBody: `Rotate ${userName}s access key`,
-        }
-        const response = await sqs.sendMessage(params).promise()
-        console.log("message sent with id of " + response.MessageId)
-    } else {
-        console.log(userName + "s Access key of " + accessKeyId + " DOES NOT require rotation")
+            UserName: {
+                DataType: "String",
+                StringValue: userName,
+            },
+        },
+        MessageBody: `Rotate ${userName}s access key`,
     }
+    const response = await sqs.sendMessage(params).promise()
+    console.log("message sent with id of " + response.MessageId)
 }
 
 export const lambdaHandler = async (event: SQSEvent, context: Context) => {
@@ -67,79 +66,57 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                 listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId &&
                 listAccessKeysForUser.AccessKeyMetadata[1].AccessKeyId &&
                 new Date(listAccessKeysForUser.AccessKeyMetadata[0].CreateDate) >
-                    new Date(listAccessKeysForUser.AccessKeyMetadata[1].CreateDate)
+                    new Date(listAccessKeysForUser.AccessKeyMetadata[1].CreateDate) &&
+                isKeyOutOfDate({ createDate: listAccessKeysForUser.AccessKeyMetadata[0].CreateDate })
             ) {
                 try {
-                    await iam
-                        .deleteAccessKey({
-                            AccessKeyId: listAccessKeysForUser.AccessKeyMetadata[1].AccessKeyId,
-                        })
-                        .promise()
-                } catch (error) {
-                    console.log(error)
-                    throw new Error("Couldn't delete access key")
-                }
-                try {
-                    await checkKey({
+                    await sendMessage({
                         accessKeyId: listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId,
-                        createDate: listAccessKeysForUser.AccessKeyMetadata[0].CreateDate,
-                        userName:
-                            event.Records[iterator].messageAttributes.UserName.stringValue || "unknown",
-                        awsAccountId: context.invokedFunctionArn.split(":")[4],
+                        userName: userName || "unknown",
                         region: event.Records[iterator].awsRegion,
+                        awsAccountId: context.invokedFunctionArn.split(":")[4],
                     })
                 } catch (error) {
                     console.log(error)
-                    throw new Error("Couldn't check key")
+                    throw new Error("Couldn't send message to SQS")
                 }
             } else if (
                 listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId &&
                 listAccessKeysForUser.AccessKeyMetadata[1].AccessKeyId &&
-                listAccessKeysForUser.AccessKeyMetadata[1].CreateDate
+                listAccessKeysForUser.AccessKeyMetadata[1].CreateDate &&
+                isKeyOutOfDate({
+                    createDate: listAccessKeysForUser.AccessKeyMetadata[1].CreateDate,
+                })
             ) {
                 try {
-                    console.log(JSON.stringify(listAccessKeysForUser))
-                    console.log(JSON.stringify(listAccessKeysForUser.AccessKeyMetadata[0]))
-                    console.log(JSON.stringify(listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId))
-                    await iam
-                        .deleteAccessKey({
-                            AccessKeyId: listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId,
-                        })
-                        .promise()
-                } catch (error) {
-                    console.log(error)
-                    throw new Error("Couldn't delete access key")
-                }
-                try {
-                    await checkKey({
+                    await sendMessage({
                         accessKeyId: listAccessKeysForUser.AccessKeyMetadata[1].AccessKeyId,
-                        createDate: listAccessKeysForUser.AccessKeyMetadata[1].CreateDate,
-                        userName:
-                            event.Records[iterator].messageAttributes.UserName.stringValue || "unknown",
-                        awsAccountId: context.invokedFunctionArn.split(":")[4],
+                        userName: userName || "unknown",
                         region: event.Records[iterator].awsRegion,
+                        awsAccountId: context.invokedFunctionArn.split(":")[4],
                     })
                 } catch (error) {
                     console.log(error)
-                    throw new Error("Couldn't check key")
+                    throw new Error("Couldn't send message to SQS")
                 }
             }
         } else if (
             listAccessKeysForUser.AccessKeyMetadata[0].CreateDate &&
-            listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId
+            listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId &&
+            isKeyOutOfDate({
+                createDate: listAccessKeysForUser.AccessKeyMetadata[0].CreateDate,
+            })
         ) {
             try {
-                await checkKey({
+                await sendMessage({
                     accessKeyId: listAccessKeysForUser.AccessKeyMetadata[0].AccessKeyId,
-                    createDate: listAccessKeysForUser.AccessKeyMetadata[0].CreateDate,
-                    userName:
-                        event.Records[iterator].messageAttributes.UserName.stringValue || "unknown",
-                    awsAccountId: context.invokedFunctionArn.split(":")[4],
+                    userName: userName || "unknown",
                     region: event.Records[iterator].awsRegion,
+                    awsAccountId: context.invokedFunctionArn.split(":")[4],
                 })
             } catch (error) {
                 console.log(error)
-                throw new Error("Couldn't check key")
+                throw new Error("Couldn't send message to SQS")
             }
         }
         iterator++
