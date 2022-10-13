@@ -86,7 +86,6 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                 }
             }
         }
-
         iterator++
     }
     console.log("UserAccessLookUp finished")

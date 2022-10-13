@@ -15,9 +15,9 @@ env:
   PIPELINE_USER_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   SAM_TEMPLATE: template.yaml
   TESTING_STACK_NAME: serverless-access-key-rotation-staging
-  TESTING_PIPELINE_EXECUTION_ROLE: arn:aws:iam::981456390971:role/aws-sam-cli-managed-staging-PipelineExecutionRole-QPVJES7N94LW
-  TESTING_CLOUDFORMATION_EXECUTION_ROLE: arn:aws:iam::981456390971:role/aws-sam-cli-managed-stagi-CloudFormationExecutionR-1V9LHBJRSVMGA
-  TESTING_ARTIFACTS_BUCKET: aws-sam-cli-managed-staging-pipel-artifactsbucket-1v2c7q38487zq
+  TESTING_PIPELINE_EXECUTION_ROLE: arn:aws:iam::417690135591:role/aws-sam-cli-managed-staging-PipelineExecutionRole-1FC06CO7GRTR
+  TESTING_CLOUDFORMATION_EXECUTION_ROLE: arn:aws:iam::417690135591:role/aws-sam-cli-managed-stagi-CloudFormationExecutionR-3SSF73FX5W4L
+  TESTING_ARTIFACTS_BUCKET: aws-sam-cli-managed-staging-pipel-artifactsbucket-ru6gqhj65pwg
   # If there are functions with "Image" PackageType in your template,
   # uncomment the line below and add "--image-repository ${TESTING_IMAGE_REPOSITORY}" to
   # testing "sam package" and "sam deploy" commands.
