@@ -30,7 +30,7 @@ const sendMessage = async ({
     awsAccountId: string
 }) => {
     const params: AWS.SQS.SendMessageRequest = {
-        QueueUrl: `https://sqs.${region}.amazonaws.com/${awsAccountId}/UpdateUserAccessKeyQueue`,
+        QueueUrl: `https://sqs.${region}.amazonaws.com/${awsAccountId}/CreateUserAccessKeyQueue`,
         MessageAttributes: {
             AccessKeyId: {
                 DataType: "String",

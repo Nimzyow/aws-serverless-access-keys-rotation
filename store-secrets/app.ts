@@ -54,10 +54,11 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                     .updateSecret({
                         SecretId,
                         SecretString: JSON.stringify({
-                            messageAttributesObject,
+                            ...messageAttributesObject,
                         }),
                     })
                     .promise()
+                console.log("Secret updated")
                 await sendSNSNotification({
                     awsAccountId,
                     region: event.Records[iterator].awsRegion,
@@ -69,7 +70,7 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
                         .createSecret({
                             Name: SecretId,
                             SecretString: JSON.stringify({
-                                messageAttributesObject,
+                                ...messageAttributesObject,
                             }),
                         })
                         .promise()

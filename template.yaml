@@ -32,7 +32,7 @@ Resources:
               Effect: Allow
               Action:
                 - sqs:SendMessage
-              Resource: !GetAtt UserQueue.Arn
+              Resource: !GetAtt UserAccessKeyLookupQueue.Arn
       Events:
         CloudWatchEvent:
           Type: Schedule # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
@@ -66,12 +66,12 @@ Resources:
             Effect: Allow
             Action:
               - sqs:SendMessage
-            Resource: !GetAtt UpdateUserAccessKeyQueue.Arn
+            Resource: !GetAtt CreateUserAccessKeyQueue.Arn
       Events:
         UserQueue:
           Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
           Properties:
-            Queue: !GetAtt UserQueue.Arn
+            Queue: !GetAtt UserAccessKeyLookupQueue.Arn
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
       BuildProperties:
@@ -104,7 +104,7 @@ Resources:
         UserQueue:
           Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
           Properties:
-            Queue: !GetAtt UpdateUserAccessKeyQueue.Arn
+            Queue: !GetAtt CreateUserAccessKeyQueue.Arn
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
       BuildProperties:
@@ -137,10 +137,10 @@ Resources:
                 - dynamodb:GetItem
               Resource: !GetAtt UserTable.Arn
       Events:
-        StoreSecretsQueue:
+        SendEmailQueue:
           Type: SQS
           Properties:
-            Queue: !GetAtt StoreSecretsQueue.Arn
+            Queue: !GetAtt SendEmailQueue.Arn
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
       BuildProperties:
@@ -165,7 +165,7 @@ Resources:
                 - secretsmanager:UpdateSecret
                 - secretsmanager:CreateSecret
                 - secretsmanager:PutResourcePolicy
-              Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+              Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:*"
             - Sid: SNSSendNotificationPolicy
               Effect: Allow
               Action:
@@ -200,10 +200,10 @@ Resources:
               - iam:DeleteAccessKey
             Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
       Events:
-        SnsSubscription:
-          Type: SNS
+        DeleteOldAccessKeyQueue:
+          Type: SQS
           Properties:
-            Topic: !Ref UpdatedAccessKeyAndStoredSecretSNSTopic #https://aws.amazon.com/premiumsupport/knowledge-center/sqs-sns-subscribe-cloudformation/
+            Queue: !GetAtt DeleteOldAccessKeyQueue.Arn
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
       BuildProperties:
@@ -214,30 +214,30 @@ Resources:
           - app.ts
 
   # https://docs.aws.amazon.com/lambda/latest/dg/with-sqs-example-use-app-spec.html
-  UserQueue:
+  UserAccessKeyLookupQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: UserQueue
+      QueueName: UserAccessKeyLookupQueue
       RedrivePolicy:
-        deadLetterTargetArn: !GetAtt UserDLQ.Arn
+        deadLetterTargetArn: !GetAtt UserAccessKeyLookupDLQ.Arn
         maxReceiveCount: 5
-  UserDLQ:
+  UserAccessKeyLookupDLQ:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: UserDLQ
+      QueueName: UserAccessKeyLookupDLQ
       MessageRetentionPeriod: 1209600
 
-  UpdateUserAccessKeyQueue:
+  CreateUserAccessKeyQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: UpdateUserAccessKeyQueue
+      QueueName: CreateUserAccessKeyQueue
       RedrivePolicy:
-        deadLetterTargetArn: !GetAtt UpdateUserAccessKeyDLQ.Arn
+        deadLetterTargetArn: !GetAtt CreateUserAccessKeyQueueDLQ.Arn
         maxReceiveCount: 5
-  UpdateUserAccessKeyDLQ:
+  CreateUserAccessKeyQueueDLQ:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: UpdateUserAccessKeyDLQ
+      QueueName: CreateUserAccessKeyQueueDLQ
       MessageRetentionPeriod: 1209600
 
   StoreSecretsQueue:
@@ -287,6 +287,8 @@ Resources:
       Subscription:
         - Endpoint: !GetAtt SendEmailQueue.Arn
           Protocol: sqs
+        - Endpoint: !GetAtt DeleteOldAccessKeyQueue.Arn
+          Protocol: sqs
 
   UserTable:
     Type: AWS::Serverless::SimpleTable
@@ -318,14 +320,14 @@ Outputs:
   SendEmailFunction:
     Description: "SendEmail Lambda Function ARN"
     Value: !GetAtt SendEmail.Arn
-  UserQueueURL:
+  UserAccessKeyLookupQueueURL:
     Description: "The queue which UserLookup will send a message to"
     Value:
-      Ref: "UserQueue"
-  UpdateUserAccessKeyQueueURL:
+      Ref: "UserAccessKeyLookupQueue"
+  CreateUserAccessKeyQueueURL:
     Description: "The queue which UserAccessKeyLookup will send a message to"
     Value:
-      Ref: "UpdateUserAccessKeyQueue"
+      Ref: "CreateUserAccessKeyQueue"
   StoreSecretsQueueURL:
     Description: "The queue which CreateUserAccessKey will send a message to"
     Value:

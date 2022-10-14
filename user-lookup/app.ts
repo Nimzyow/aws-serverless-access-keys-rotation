@@ -16,7 +16,7 @@ export const lambdaHandler = async (event: ScheduledEvent, context: Context) => 
             const params: AWS.SQS.SendMessageRequest = {
                 QueueUrl: `https://sqs.${event.region}.amazonaws.com/${
                     context.invokedFunctionArn.split(":")[4]
-                }/UserQueue`,
+                }/UserAccessKeyLookupQueue`,
                 MessageAttributes: {
                     UserName: {
                         DataType: "String",

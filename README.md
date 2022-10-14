@@ -51,6 +51,14 @@ from the same directory as template.yml
 Note: You will need to run `sam build` to test the lambda function with the most up to date code.<br/>
 Note: use the -e with the path to the event file if you need it.
 
+4. How do I sync my resources to the cloud for testing?
+
+Ensure you have set the correct profile first with `export AWS_PROFILE=<name>`
+
+`sam sync --stack-name serverless-access-keys-rotation --watch`
+
+5. How do I see the logs from the terminal
+
 ### Creating the pipeline
 
 You can use SAM to create a guided pipeline file for you to use as a base. Simply run:
