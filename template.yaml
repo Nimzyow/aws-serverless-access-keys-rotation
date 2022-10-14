@@ -15,6 +15,7 @@ Globals:
       - x86_64
 
 Resources:
+  ### Lambda Function ###
   UserLookup:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -214,6 +215,7 @@ Resources:
           - app.ts
 
   # https://docs.aws.amazon.com/lambda/latest/dg/with-sqs-example-use-app-spec.html
+  ### Queues ###
   UserAccessKeyLookupQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -279,6 +281,7 @@ Resources:
       QueueName: SendEmailQueueDLQ
       MessageRetentionPeriod: 1209600
 
+  ### SNS Topics ###
   UpdatedAccessKeyAndStoredSecretSNSTopic:
     Type: AWS::SNS::Topic
     Properties:
@@ -290,6 +293,21 @@ Resources:
         - Endpoint: !GetAtt DeleteOldAccessKeyQueue.Arn
           Protocol: sqs
 
+  DLQAlarmBreachTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: AlarmBreach
+      DisplayName: AlarmBreach
+
+  ### SNS Subscriptions ###
+  DLQAlarmBreachSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: test@example.com
+      Protocol: email
+      TopicArn: !Ref DLQAlarmBreachTopic
+
+  ### DynamoDB ###
   UserTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
@@ -297,6 +315,26 @@ Resources:
       PrimaryKey:
         Type: String
         Name: name
+
+  ### CloudWatch Alarms ###
+  UserAccessKeyLookupDLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: UserAccessKeyLookupDLQAlarm
+      AlarmDescription: UserAccessKeyLookupDLQ Alarm
+      AlarmActions:
+        - !Ref DLQAlarmBreachTopic
+      MetricName: ApproximateNumberOfMessagesVisible
+      Namespace: AWS/SQS
+      Statistic: Sum
+      Period: 60
+      ComparisonOperator: GreaterThanThreshold
+      EvaluationPeriods: 1
+      Threshold: 0
+      TreatMissingData: notBreaching
+      Dimensions:
+        - Name: QueueName
+          Value: UserAccessKeyLookupDLQ
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
