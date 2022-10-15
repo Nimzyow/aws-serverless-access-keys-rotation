@@ -327,7 +327,7 @@ Resources:
       MetricName: ApproximateNumberOfMessagesVisible
       Namespace: AWS/SQS
       Statistic: Sum
-      Period: 60
+      Period: 300
       ComparisonOperator: GreaterThanThreshold
       EvaluationPeriods: 1
       Threshold: 0
@@ -335,6 +335,78 @@ Resources:
       Dimensions:
         - Name: QueueName
           Value: UserAccessKeyLookupDLQ
+  CreateUserAccessKeyQueueDLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CreateUserAccessKeyQueueDLQAlarm
+      AlarmDescription: CreateUserAccessKeyQueueDLQ Alarm
+      AlarmActions:
+        - !Ref DLQAlarmBreachTopic
+      MetricName: ApproximateNumberOfMessagesVisible
+      Namespace: AWS/SQS
+      Statistic: Sum
+      Period: 300
+      ComparisonOperator: GreaterThanThreshold
+      EvaluationPeriods: 1
+      Threshold: 0
+      TreatMissingData: notBreaching
+      Dimensions:
+        - Name: QueueName
+          Value: CreateUserAccessKeyQueueDLQ
+  StoreSecretsQueueDLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: StoreSecretsQueueDLQAlarm
+      AlarmDescription: StoreSecretsQueueDLQ Alarm
+      AlarmActions:
+        - !Ref DLQAlarmBreachTopic
+      MetricName: ApproximateNumberOfMessagesVisible
+      Namespace: AWS/SQS
+      Statistic: Sum
+      Period: 300
+      ComparisonOperator: GreaterThanThreshold
+      EvaluationPeriods: 1
+      Threshold: 0
+      TreatMissingData: notBreaching
+      Dimensions:
+        - Name: QueueName
+          Value: StoreSecretsQueueDLQ
+  DeleteOldAccessKeyQueueDLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: DeleteOldAccessKeyQueueDLQAlarm
+      AlarmDescription: DeleteOldAccessKeyQueueDLQ Alarm
+      AlarmActions:
+        - !Ref DLQAlarmBreachTopic
+      MetricName: ApproximateNumberOfMessagesVisible
+      Namespace: AWS/SQS
+      Statistic: Sum
+      Period: 300
+      ComparisonOperator: GreaterThanThreshold
+      EvaluationPeriods: 1
+      Threshold: 0
+      TreatMissingData: notBreaching
+      Dimensions:
+        - Name: QueueName
+          Value: DeleteOldAccessKeyQueueDLQ
+  SendEmailQueueDLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: SendEmailQueueDLQAlarm
+      AlarmDescription: SendEmailQueueDLQ Alarm
+      AlarmActions:
+        - !Ref DLQAlarmBreachTopic
+      MetricName: ApproximateNumberOfMessagesVisible
+      Namespace: AWS/SQS
+      Statistic: Sum
+      Period: 300
+      ComparisonOperator: GreaterThanThreshold
+      EvaluationPeriods: 1
+      Threshold: 0
+      TreatMissingData: notBreaching
+      Dimensions:
+        - Name: QueueName
+          Value: SendEmailQueueDLQ
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
