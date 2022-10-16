@@ -1,452 +1,462 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  access-keys-rotation
+    access-keys-rotation
 
-  Sample SAM Template for access-keys-rotation
+    Sample SAM Template for access-keys-rotation
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
-  Function:
-    Timeout: 10
-    MemorySize: 1024
-    Runtime: nodejs16.x
-    Architectures:
-      - x86_64
+    Function:
+        Timeout: 10
+        MemorySize: 1024
+        Runtime: nodejs16.x
+        Architectures:
+            - x86_64
 
 Resources:
-  ### Lambda Function ###
-  UserLookup:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-    Properties:
-      FunctionName: UserLookup
-      CodeUri: src/lambdas/user-lookup/
-      Handler: app.lambdaHandler
-      Policies:
-        - Statement:
-            - Sid: IAMListUsersPolicy
-              Effect: Allow
-              Action:
-                - iam:ListUsers
-              Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
-            - Sid: SQSSendMessageToUserQueue
-              Effect: Allow
-              Action:
-                - sqs:SendMessage
-              Resource: !GetAtt UserAccessKeyLookupQueue.Arn
-      Events:
-        CloudWatchEvent:
-          Type: Schedule # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
-          Properties:
-            Schedule: rate(1 day)
-            Name: start-access-keys-check
-            Description: Trigger a lambda function every 24 hours to check if access keys need to be rotated
-            Enabled: True
-    Metadata: # Manage esbuild properties
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: "es2020"
-        Sourcemap: true
-        EntryPoints:
-          - app.ts
-  UserAccessKeyLookup:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-    Properties:
-      FunctionName: UserAccessKeyLookup
-      CodeUri: src/lambdas/user-access-key-lookup/
-      Handler: app.lambdaHandler
-      Policies:
-        Statement:
-          - Sid: IAMListUserAccessKeysPolicy
-            Effect: Allow
-            Action:
-              - iam:ListAccessKeys
-            Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
-          - Sid: SQSSendMessageToCheckAccessKeyAgeOfUserQueue
-            Effect: Allow
-            Action:
-              - sqs:SendMessage
-            Resource: !GetAtt CreateUserAccessKeyQueue.Arn
-      Events:
-        UserQueue:
-          Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
-          Properties:
-            Queue: !GetAtt UserAccessKeyLookupQueue.Arn
-    Metadata: # Manage esbuild properties
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: "es2020"
-        Sourcemap: true
-        EntryPoints:
-          - app.ts
-  CreateUserAccessKey:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-    Properties:
-      FunctionName: CreateUserAccessKey
-      CodeUri: src/lambdas/create-user-access-key/
-      Handler: app.lambdaHandler
-      Policies:
-        - Statement:
-            - Sid: IAMCreateUserAccessKeyPolicy
-              Effect: Allow
-              Action:
-                - iam:CreateAccessKey
-                - iam:DeleteAccessKey
-                - iam:ListAccessKeys
-              Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
-            - Sid: SQSSendMessageToStoreSecretsQueueQueue
-              Effect: Allow
-              Action:
-                - sqs:SendMessage
-              Resource: !GetAtt StoreSecretsQueue.Arn
-      Events:
-        UserQueue:
-          Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
-          Properties:
-            Queue: !GetAtt CreateUserAccessKeyQueue.Arn
-    Metadata: # Manage esbuild properties
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: "es2020"
-        Sourcemap: true
-        EntryPoints:
-          - app.ts
-  SendEmail:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: SendEmail
-      CodeUri: src/lambdas/send-email/
-      Handler: app.lambdaHandler
-      Policies:
-        - Statement:
-            - Sid: SESSendEmailPolicy
-              Effect: Allow
-              Action:
-                - ses:SendEmail
-                - ses:SendRawEmail
-              Resource: "*"
-              Condition:
-                ForAllValues:StringLike:
-                  ses:Recipients:
-                    - "*@rippleenergy.com"
-            - Sid: GetItemFromUserTable
-              Effect: Allow
-              Action:
-                - dynamodb:GetItem
-              Resource: !GetAtt UserTable.Arn
-      Events:
-        SendEmailQueue:
-          Type: SQS
-          Properties:
-            Queue: !GetAtt SendEmailQueue.Arn
-    Metadata: # Manage esbuild properties
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: "es2020"
-        Sourcemap: true
-        EntryPoints:
-          - app.ts
+    ### Lambda Function ###
+    UserLookup:
+        Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+        Properties:
+            FunctionName: UserLookup
+            CodeUri: src/lambdas/user-lookup/
+            Handler: app.lambdaHandler
+            Policies:
+                - Statement:
+                      - Sid: IAMListUsersPolicy
+                        Effect: Allow
+                        Action:
+                            - iam:ListUsers
+                        Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+                      - Sid: SQSSendMessageToUserQueue
+                        Effect: Allow
+                        Action:
+                            - sqs:SendMessage
+                        Resource: !GetAtt UserAccessKeyLookupQueue.Arn
+            Events:
+                CloudWatchEvent:
+                    Type: Schedule # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
+                    Properties:
+                        Schedule: rate(1 day)
+                        Name: start-access-keys-check
+                        Description: Trigger a lambda function every 24 hours to check if access keys need to be rotated
+                        Enabled: True
+        Metadata: # Manage esbuild properties
+            BuildMethod: esbuild
+            BuildProperties:
+                Minify: true
+                Target: "es2020"
+                Sourcemap: true
+                EntryPoints:
+                    - app.ts
+    UserAccessKeyLookup:
+        Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+        Properties:
+            FunctionName: UserAccessKeyLookup
+            CodeUri: src/lambdas/user-access-key-lookup/
+            Handler: app.lambdaHandler
+            Policies:
+                Statement:
+                    - Sid: IAMListUserAccessKeysPolicy
+                      Effect: Allow
+                      Action:
+                          - iam:ListAccessKeys
+                      Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+                    - Sid: SQSSendMessageToCheckAccessKeyAgeOfUserQueue
+                      Effect: Allow
+                      Action:
+                          - sqs:SendMessage
+                      Resource: !GetAtt CreateUserAccessKeyQueue.Arn
+            Events:
+                UserQueue:
+                    Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
+                    Properties:
+                        Queue: !GetAtt UserAccessKeyLookupQueue.Arn
+        Metadata: # Manage esbuild properties
+            BuildMethod: esbuild
+            BuildProperties:
+                Minify: true
+                Target: "es2020"
+                Sourcemap: true
+                EntryPoints:
+                    - app.ts
+    CreateUserAccessKey:
+        Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+        Properties:
+            FunctionName: CreateUserAccessKey
+            CodeUri: src/lambdas/create-user-access-key/
+            Handler: app.lambdaHandler
+            Policies:
+                - Statement:
+                      - Sid: IAMCreateUserAccessKeyPolicy
+                        Effect: Allow
+                        Action:
+                            - iam:CreateAccessKey
+                            - iam:DeleteAccessKey
+                            - iam:ListAccessKeys
+                        Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+                      - Sid: SQSSendMessageToStoreSecretsQueueQueue
+                        Effect: Allow
+                        Action:
+                            - sqs:SendMessage
+                        Resource: !GetAtt StoreSecretsQueue.Arn
+            Events:
+                UserQueue:
+                    Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
+                    Properties:
+                        Queue: !GetAtt CreateUserAccessKeyQueue.Arn
+        Metadata: # Manage esbuild properties
+            BuildMethod: esbuild
+            BuildProperties:
+                Minify: true
+                Target: "es2020"
+                Sourcemap: true
+                EntryPoints:
+                    - app.ts
+    SendEmail:
+        Type: AWS::Serverless::Function
+        Properties:
+            FunctionName: SendEmail
+            CodeUri: src/lambdas/send-email/
+            Handler: app.lambdaHandler
+            Policies:
+                - Statement:
+                      - Sid: SESSendEmailPolicy
+                        Effect: Allow
+                        Action:
+                            - ses:SendEmail
+                            - ses:SendRawEmail
+                        Resource: "*"
+                        Condition:
+                            ForAllValues:StringLike:
+                                ses:Recipients:
+                                    - "*@rippleenergy.com"
+                      - Sid: GetItemFromUserTable
+                        Effect: Allow
+                        Action:
+                            - dynamodb:GetItem
+                        Resource: !GetAtt UserTable.Arn
+            Events:
+                SendEmailQueue:
+                    Type: SQS
+                    Properties:
+                        Queue: !GetAtt SendEmailQueue.Arn
+        Metadata: # Manage esbuild properties
+            BuildMethod: esbuild
+            BuildProperties:
+                Minify: true
+                Target: "es2020"
+                Sourcemap: true
+                EntryPoints:
+                    - app.ts
 
-  StoreSecrets:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-    Properties:
-      FunctionName: StoreSecrets
-      CodeUri: src/lambdas/store-secrets/
-      Handler: app.lambdaHandler
-      Policies:
-        - Statement:
-            - Sid: SecretsManagerPolicy
-              Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-                - secretsmanager:UpdateSecret
-                - secretsmanager:CreateSecret
-                - secretsmanager:PutResourcePolicy
-              Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:*"
-            - Sid: SNSSendNotificationPolicy
-              Effect: Allow
-              Action:
-                - sns:Publish
-              Resource: !Ref UpdatedAccessKeyAndStoredSecretSNSTopic #https://aws.amazon.com/premiumsupport/knowledge-center/sqs-sns-subscribe-cloudformation/
-      Events:
-        StoreSecretsQueue:
-          Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
-          Properties:
-            Queue: !GetAtt StoreSecretsQueue.Arn
-    Metadata: # Manage esbuild properties
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: "es2020"
-        Sourcemap: true
-        EntryPoints:
-          - app.ts
+    StoreSecrets:
+        Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+        Properties:
+            FunctionName: StoreSecrets
+            CodeUri: src/lambdas/store-secrets/
+            Handler: app.lambdaHandler
+            Policies:
+                - Statement:
+                      - Sid: SecretsManagerPolicy
+                        Effect: Allow
+                        Action:
+                            - secretsmanager:GetSecretValue
+                            - secretsmanager:UpdateSecret
+                            - secretsmanager:CreateSecret
+                            - secretsmanager:PutResourcePolicy
+                        Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:*"
+                      - Sid: SNSSendNotificationPolicy
+                        Effect: Allow
+                        Action:
+                            - sns:Publish
+                        Resource: !Ref UpdatedAccessKeyAndStoredSecretSNSTopic #https://aws.amazon.com/premiumsupport/knowledge-center/sqs-sns-subscribe-cloudformation/
+            Events:
+                StoreSecretsQueue:
+                    Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
+                    Properties:
+                        Queue: !GetAtt StoreSecretsQueue.Arn
+        Metadata: # Manage esbuild properties
+            BuildMethod: esbuild
+            BuildProperties:
+                Minify: true
+                Target: "es2020"
+                Sourcemap: true
+                EntryPoints:
+                    - app.ts
 
-  DeleteOldAccessKey:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: DeleteOldAccessKey
-      CodeUri: src/lambdas/delete-old-access-key/
-      Handler: app.lambdaHandler
-      Policies:
-        Statement:
-          - Sid: ListAndDeleteOldAccessKeyPolicy
-            Effect: Allow
-            Action:
-              - iam:ListAccessKeys
-              - iam:DeleteAccessKey
-            Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
-      Events:
-        DeleteOldAccessKeyQueue:
-          Type: SQS
-          Properties:
-            Queue: !GetAtt DeleteOldAccessKeyQueue.Arn
-    Metadata: # Manage esbuild properties
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: "es2020"
-        Sourcemap: true
-        EntryPoints:
-          - app.ts
+    DeleteOldAccessKey:
+        Type: AWS::Serverless::Function
+        Properties:
+            FunctionName: DeleteOldAccessKey
+            CodeUri: src/lambdas/delete-old-access-key/
+            Handler: app.lambdaHandler
+            Policies:
+                Statement:
+                    - Sid: ListAndDeleteOldAccessKeyPolicy
+                      Effect: Allow
+                      Action:
+                          - iam:ListAccessKeys
+                          - iam:DeleteAccessKey
+                      Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
+            Events:
+                DeleteOldAccessKeyQueue:
+                    Type: SQS
+                    Properties:
+                        Queue: !GetAtt DeleteOldAccessKeyQueue.Arn
+        Metadata: # Manage esbuild properties
+            BuildMethod: esbuild
+            BuildProperties:
+                Minify: true
+                Target: "es2020"
+                Sourcemap: true
+                EntryPoints:
+                    - app.ts
 
-  # https://docs.aws.amazon.com/lambda/latest/dg/with-sqs-example-use-app-spec.html
-  ### Queues ###
-  UserAccessKeyLookupQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: UserAccessKeyLookupQueue
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt UserAccessKeyLookupDLQ.Arn
-        maxReceiveCount: 5
-  UserAccessKeyLookupDLQ:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: UserAccessKeyLookupDLQ
-      MessageRetentionPeriod: 1209600
+    ServerlessAccessKeysRotationDepLayer:
+        Type: AWS::Serverless::LayerVersion
+        Properties:
+            LayerName: ServerlessAccessKeysRotationDepLayer
+            Description: Layer with dependencies for ServerlessAccessKeysRotation
+            ContentUri: ./
+            CompatibleRuntimes:
+                - nodejs16.x
+            RetentionPolicy: Retain
 
-  CreateUserAccessKeyQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: CreateUserAccessKeyQueue
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt CreateUserAccessKeyQueueDLQ.Arn
-        maxReceiveCount: 5
-  CreateUserAccessKeyQueueDLQ:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: CreateUserAccessKeyQueueDLQ
-      MessageRetentionPeriod: 1209600
+    # https://docs.aws.amazon.com/lambda/latest/dg/with-sqs-example-use-app-spec.html
+    ### Queues ###
+    UserAccessKeyLookupQueue:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: UserAccessKeyLookupQueue
+            RedrivePolicy:
+                deadLetterTargetArn: !GetAtt UserAccessKeyLookupDLQ.Arn
+                maxReceiveCount: 5
+    UserAccessKeyLookupDLQ:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: UserAccessKeyLookupDLQ
+            MessageRetentionPeriod: 1209600
 
-  StoreSecretsQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: StoreSecretsQueue
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt StoreSecretsQueueDLQ.Arn
-        maxReceiveCount: 5
-  StoreSecretsQueueDLQ:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: StoreSecretsQueueDLQ
-      MessageRetentionPeriod: 1209600
+    CreateUserAccessKeyQueue:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: CreateUserAccessKeyQueue
+            RedrivePolicy:
+                deadLetterTargetArn: !GetAtt CreateUserAccessKeyQueueDLQ.Arn
+                maxReceiveCount: 5
+    CreateUserAccessKeyQueueDLQ:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: CreateUserAccessKeyQueueDLQ
+            MessageRetentionPeriod: 1209600
 
-  DeleteOldAccessKeyQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: DeleteOldAccessKeyQueue
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt DeleteOldAccessKeyQueueDLQ.Arn
-        maxReceiveCount: 5
-  DeleteOldAccessKeyQueueDLQ:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: DeleteOldAccessKeyQueueDLQ
-      MessageRetentionPeriod: 1209600
+    StoreSecretsQueue:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: StoreSecretsQueue
+            RedrivePolicy:
+                deadLetterTargetArn: !GetAtt StoreSecretsQueueDLQ.Arn
+                maxReceiveCount: 5
+    StoreSecretsQueueDLQ:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: StoreSecretsQueueDLQ
+            MessageRetentionPeriod: 1209600
 
-  SendEmailQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: SendEmailQueue
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt SendEmailQueueDLQ.Arn
-        maxReceiveCount: 5
-  SendEmailQueueDLQ:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: SendEmailQueueDLQ
-      MessageRetentionPeriod: 1209600
+    DeleteOldAccessKeyQueue:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: DeleteOldAccessKeyQueue
+            RedrivePolicy:
+                deadLetterTargetArn: !GetAtt DeleteOldAccessKeyQueueDLQ.Arn
+                maxReceiveCount: 5
+    DeleteOldAccessKeyQueueDLQ:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: DeleteOldAccessKeyQueueDLQ
+            MessageRetentionPeriod: 1209600
 
-  ### SNS Topics ###
-  UpdatedAccessKeyAndStoredSecretSNSTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      TopicName: UpdatedAccessKeyAndStoredSecret
-      DisplayName: UpdatedAccessKeyAndStoredSecret
-      Subscription:
-        - Endpoint: !GetAtt SendEmailQueue.Arn
-          Protocol: sqs
-        - Endpoint: !GetAtt DeleteOldAccessKeyQueue.Arn
-          Protocol: sqs
+    SendEmailQueue:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: SendEmailQueue
+            RedrivePolicy:
+                deadLetterTargetArn: !GetAtt SendEmailQueueDLQ.Arn
+                maxReceiveCount: 5
+    SendEmailQueueDLQ:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: SendEmailQueueDLQ
+            MessageRetentionPeriod: 1209600
 
-  DLQAlarmBreachTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      TopicName: AlarmBreach
-      DisplayName: AlarmBreach
+    ### SNS Topics ###
+    UpdatedAccessKeyAndStoredSecretSNSTopic:
+        Type: AWS::SNS::Topic
+        Properties:
+            TopicName: UpdatedAccessKeyAndStoredSecret
+            DisplayName: UpdatedAccessKeyAndStoredSecret
+            Subscription:
+                - Endpoint: !GetAtt SendEmailQueue.Arn
+                  Protocol: sqs
+                - Endpoint: !GetAtt DeleteOldAccessKeyQueue.Arn
+                  Protocol: sqs
 
-  ### SNS Subscriptions ###
-  DLQAlarmBreachSubscription:
-    Type: AWS::SNS::Subscription
-    Properties:
-      Endpoint: test@example.com
-      Protocol: email
-      TopicArn: !Ref DLQAlarmBreachTopic
+    DLQAlarmBreachTopic:
+        Type: AWS::SNS::Topic
+        Properties:
+            TopicName: AlarmBreach
+            DisplayName: AlarmBreach
 
-  ### DynamoDB ###
-  UserTable:
-    Type: AWS::Serverless::SimpleTable
-    Properties:
-      TableName: User
-      PrimaryKey:
-        Type: String
-        Name: name
+    ### SNS Subscriptions ###
+    DLQAlarmBreachSubscription:
+        Type: AWS::SNS::Subscription
+        Properties:
+            Endpoint: test@example.com
+            Protocol: email
+            TopicArn: !Ref DLQAlarmBreachTopic
 
-  ### CloudWatch Alarms ###
-  UserAccessKeyLookupDLQAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: UserAccessKeyLookupDLQAlarm
-      AlarmDescription: UserAccessKeyLookupDLQ Alarm
-      AlarmActions:
-        - !Ref DLQAlarmBreachTopic
-      MetricName: ApproximateNumberOfMessagesVisible
-      Namespace: AWS/SQS
-      Statistic: Sum
-      Period: 300
-      ComparisonOperator: GreaterThanThreshold
-      EvaluationPeriods: 1
-      Threshold: 0
-      TreatMissingData: notBreaching
-      Dimensions:
-        - Name: QueueName
-          Value: UserAccessKeyLookupDLQ
-  CreateUserAccessKeyQueueDLQAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: CreateUserAccessKeyQueueDLQAlarm
-      AlarmDescription: CreateUserAccessKeyQueueDLQ Alarm
-      AlarmActions:
-        - !Ref DLQAlarmBreachTopic
-      MetricName: ApproximateNumberOfMessagesVisible
-      Namespace: AWS/SQS
-      Statistic: Sum
-      Period: 300
-      ComparisonOperator: GreaterThanThreshold
-      EvaluationPeriods: 1
-      Threshold: 0
-      TreatMissingData: notBreaching
-      Dimensions:
-        - Name: QueueName
-          Value: CreateUserAccessKeyQueueDLQ
-  StoreSecretsQueueDLQAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: StoreSecretsQueueDLQAlarm
-      AlarmDescription: StoreSecretsQueueDLQ Alarm
-      AlarmActions:
-        - !Ref DLQAlarmBreachTopic
-      MetricName: ApproximateNumberOfMessagesVisible
-      Namespace: AWS/SQS
-      Statistic: Sum
-      Period: 300
-      ComparisonOperator: GreaterThanThreshold
-      EvaluationPeriods: 1
-      Threshold: 0
-      TreatMissingData: notBreaching
-      Dimensions:
-        - Name: QueueName
-          Value: StoreSecretsQueueDLQ
-  DeleteOldAccessKeyQueueDLQAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: DeleteOldAccessKeyQueueDLQAlarm
-      AlarmDescription: DeleteOldAccessKeyQueueDLQ Alarm
-      AlarmActions:
-        - !Ref DLQAlarmBreachTopic
-      MetricName: ApproximateNumberOfMessagesVisible
-      Namespace: AWS/SQS
-      Statistic: Sum
-      Period: 300
-      ComparisonOperator: GreaterThanThreshold
-      EvaluationPeriods: 1
-      Threshold: 0
-      TreatMissingData: notBreaching
-      Dimensions:
-        - Name: QueueName
-          Value: DeleteOldAccessKeyQueueDLQ
-  SendEmailQueueDLQAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: SendEmailQueueDLQAlarm
-      AlarmDescription: SendEmailQueueDLQ Alarm
-      AlarmActions:
-        - !Ref DLQAlarmBreachTopic
-      MetricName: ApproximateNumberOfMessagesVisible
-      Namespace: AWS/SQS
-      Statistic: Sum
-      Period: 300
-      ComparisonOperator: GreaterThanThreshold
-      EvaluationPeriods: 1
-      Threshold: 0
-      TreatMissingData: notBreaching
-      Dimensions:
-        - Name: QueueName
-          Value: SendEmailQueueDLQ
+    ### DynamoDB ###
+    UserTable:
+        Type: AWS::Serverless::SimpleTable
+        Properties:
+            TableName: User
+            PrimaryKey:
+                Type: String
+                Name: name
+
+    ### CloudWatch Alarms ###
+    UserAccessKeyLookupDLQAlarm:
+        Type: AWS::CloudWatch::Alarm
+        Properties:
+            AlarmName: UserAccessKeyLookupDLQAlarm
+            AlarmDescription: UserAccessKeyLookupDLQ Alarm
+            AlarmActions:
+                - !Ref DLQAlarmBreachTopic
+            MetricName: ApproximateNumberOfMessagesVisible
+            Namespace: AWS/SQS
+            Statistic: Sum
+            Period: 300
+            ComparisonOperator: GreaterThanThreshold
+            EvaluationPeriods: 1
+            Threshold: 0
+            TreatMissingData: notBreaching
+            Dimensions:
+                - Name: QueueName
+                  Value: UserAccessKeyLookupDLQ
+    CreateUserAccessKeyQueueDLQAlarm:
+        Type: AWS::CloudWatch::Alarm
+        Properties:
+            AlarmName: CreateUserAccessKeyQueueDLQAlarm
+            AlarmDescription: CreateUserAccessKeyQueueDLQ Alarm
+            AlarmActions:
+                - !Ref DLQAlarmBreachTopic
+            MetricName: ApproximateNumberOfMessagesVisible
+            Namespace: AWS/SQS
+            Statistic: Sum
+            Period: 300
+            ComparisonOperator: GreaterThanThreshold
+            EvaluationPeriods: 1
+            Threshold: 0
+            TreatMissingData: notBreaching
+            Dimensions:
+                - Name: QueueName
+                  Value: CreateUserAccessKeyQueueDLQ
+    StoreSecretsQueueDLQAlarm:
+        Type: AWS::CloudWatch::Alarm
+        Properties:
+            AlarmName: StoreSecretsQueueDLQAlarm
+            AlarmDescription: StoreSecretsQueueDLQ Alarm
+            AlarmActions:
+                - !Ref DLQAlarmBreachTopic
+            MetricName: ApproximateNumberOfMessagesVisible
+            Namespace: AWS/SQS
+            Statistic: Sum
+            Period: 300
+            ComparisonOperator: GreaterThanThreshold
+            EvaluationPeriods: 1
+            Threshold: 0
+            TreatMissingData: notBreaching
+            Dimensions:
+                - Name: QueueName
+                  Value: StoreSecretsQueueDLQ
+    DeleteOldAccessKeyQueueDLQAlarm:
+        Type: AWS::CloudWatch::Alarm
+        Properties:
+            AlarmName: DeleteOldAccessKeyQueueDLQAlarm
+            AlarmDescription: DeleteOldAccessKeyQueueDLQ Alarm
+            AlarmActions:
+                - !Ref DLQAlarmBreachTopic
+            MetricName: ApproximateNumberOfMessagesVisible
+            Namespace: AWS/SQS
+            Statistic: Sum
+            Period: 300
+            ComparisonOperator: GreaterThanThreshold
+            EvaluationPeriods: 1
+            Threshold: 0
+            TreatMissingData: notBreaching
+            Dimensions:
+                - Name: QueueName
+                  Value: DeleteOldAccessKeyQueueDLQ
+    SendEmailQueueDLQAlarm:
+        Type: AWS::CloudWatch::Alarm
+        Properties:
+            AlarmName: SendEmailQueueDLQAlarm
+            AlarmDescription: SendEmailQueueDLQ Alarm
+            AlarmActions:
+                - !Ref DLQAlarmBreachTopic
+            MetricName: ApproximateNumberOfMessagesVisible
+            Namespace: AWS/SQS
+            Statistic: Sum
+            Period: 300
+            ComparisonOperator: GreaterThanThreshold
+            EvaluationPeriods: 1
+            Threshold: 0
+            TreatMissingData: notBreaching
+            Dimensions:
+                - Name: QueueName
+                  Value: SendEmailQueueDLQ
 
 Outputs:
-  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-  # Find out more about other implicit resources you can reference within SAM
-  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  UserLookupFunction:
-    Description: "UserLookup Lambda Function ARN"
-    Value: !GetAtt UserLookup.Arn
-  UserAccessKeyLookupFunction:
-    Description: "UserAccessKeyLookup Lambda Function ARN"
-    Value: !GetAtt UserAccessKeyLookup.Arn
-  CreateUserAccessKeyFunction:
-    Description: "CreateUserAccessKey Lambda Function ARN"
-    Value: !GetAtt CreateUserAccessKey.Arn
-  StoreSecretsFunction:
-    Description: "StoreSecrets Lambda Function ARN"
-    Value: !GetAtt StoreSecrets.Arn
-  DeleteOldAccessKeyFunction:
-    Description: "DeleteOldAccessKey Lambda Function ARN"
-    Value: !GetAtt DeleteOldAccessKey.Arn
-  SendEmailFunction:
-    Description: "SendEmail Lambda Function ARN"
-    Value: !GetAtt SendEmail.Arn
-  UserAccessKeyLookupQueueURL:
-    Description: "The queue which UserLookup will send a message to"
-    Value:
-      Ref: "UserAccessKeyLookupQueue"
-  CreateUserAccessKeyQueueURL:
-    Description: "The queue which UserAccessKeyLookup will send a message to"
-    Value:
-      Ref: "CreateUserAccessKeyQueue"
-  StoreSecretsQueueURL:
-    Description: "The queue which CreateUserAccessKey will send a message to"
-    Value:
-      Ref: "StoreSecretsQueue"
-  DeleteOldAccessKeyQueueURL:
-    Description: "The queue which SNS topic UpdatedUserAccessKey will send a message to"
-    Value:
-      Ref: "DeleteOldAccessKeyQueue"
-  SendEmailQueueURL:
-    Description: "The queue which SNS topic UpdatedUserAccessKey will send a message to"
-    Value:
-      Ref: "SendEmailQueue"
+    # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+    # Find out more about other implicit resources you can reference within SAM
+    # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+    UserLookupFunction:
+        Description: "UserLookup Lambda Function ARN"
+        Value: !GetAtt UserLookup.Arn
+    UserAccessKeyLookupFunction:
+        Description: "UserAccessKeyLookup Lambda Function ARN"
+        Value: !GetAtt UserAccessKeyLookup.Arn
+    CreateUserAccessKeyFunction:
+        Description: "CreateUserAccessKey Lambda Function ARN"
+        Value: !GetAtt CreateUserAccessKey.Arn
+    StoreSecretsFunction:
+        Description: "StoreSecrets Lambda Function ARN"
+        Value: !GetAtt StoreSecrets.Arn
+    DeleteOldAccessKeyFunction:
+        Description: "DeleteOldAccessKey Lambda Function ARN"
+        Value: !GetAtt DeleteOldAccessKey.Arn
+    SendEmailFunction:
+        Description: "SendEmail Lambda Function ARN"
+        Value: !GetAtt SendEmail.Arn
+    UserAccessKeyLookupQueueURL:
+        Description: "The queue which UserLookup will send a message to"
+        Value:
+            Ref: "UserAccessKeyLookupQueue"
+    CreateUserAccessKeyQueueURL:
+        Description: "The queue which UserAccessKeyLookup will send a message to"
+        Value:
+            Ref: "CreateUserAccessKeyQueue"
+    StoreSecretsQueueURL:
+        Description: "The queue which CreateUserAccessKey will send a message to"
+        Value:
+            Ref: "StoreSecretsQueue"
+    DeleteOldAccessKeyQueueURL:
+        Description: "The queue which SNS topic UpdatedUserAccessKey will send a message to"
+        Value:
+            Ref: "DeleteOldAccessKeyQueue"
+    SendEmailQueueURL:
+        Description: "The queue which SNS topic UpdatedUserAccessKey will send a message to"
+        Value:
+            Ref: "SendEmailQueue"
