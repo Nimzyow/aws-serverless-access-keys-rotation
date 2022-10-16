@@ -5,19 +5,14 @@
 
 export default {
     preset: "ts-jest",
-    testEnvironment: "jsdom",
-    globals: {
-        "ts-jest": {
-            tsconfig: "./tsconfig.json",
-        },
-    },
+    testEnvironment: "node",
     transform: {
         "^.+\\.ts?$": "esbuild-jest",
     },
-    verbose: true,
     clearMocks: true,
     collectCoverage: true,
     coverageDirectory: "coverage",
     coverageProvider: "v8",
     testMatch: ["**/tests/unit/*.test.ts"],
+    modulePathIgnorePatterns: ["<rootDir>/.aws-sam"],
 }

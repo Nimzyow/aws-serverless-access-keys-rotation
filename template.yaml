@@ -20,7 +20,7 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       FunctionName: UserLookup
-      CodeUri: user-lookup/
+      CodeUri: src/lambdas/user-lookup/
       Handler: app.lambdaHandler
       Policies:
         - Statement:
@@ -54,7 +54,7 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       FunctionName: UserAccessKeyLookup
-      CodeUri: user-access-key-lookup/
+      CodeUri: src/lambdas/user-access-key-lookup/
       Handler: app.lambdaHandler
       Policies:
         Statement:
@@ -85,7 +85,7 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       FunctionName: CreateUserAccessKey
-      CodeUri: create-user-access-key/
+      CodeUri: src/lambdas/create-user-access-key/
       Handler: app.lambdaHandler
       Policies:
         - Statement:
@@ -118,7 +118,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: SendEmail
-      CodeUri: send-email/
+      CodeUri: src/lambdas/send-email/
       Handler: app.lambdaHandler
       Policies:
         - Statement:
@@ -155,7 +155,7 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       FunctionName: StoreSecrets
-      CodeUri: store-secrets/
+      CodeUri: src/lambdas/store-secrets/
       Handler: app.lambdaHandler
       Policies:
         - Statement:
@@ -190,7 +190,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: DeleteOldAccessKey
-      CodeUri: delete-old-access-key/
+      CodeUri: src/lambdas/delete-old-access-key/
       Handler: app.lambdaHandler
       Policies:
         Statement:
