@@ -1,5 +1,6 @@
-import { ScheduledEvent, Context } from "aws-lambda"
+// import { ScheduledEvent, Context } from "aws-lambda"
 import { lambdaHandler } from "../../app"
+
 // mock aws-sdk IAM and SQS
 const listUsers = jest.fn().mockReturnValue({
     promise: jest.fn().mockResolvedValue({
@@ -47,7 +48,7 @@ jest.mock("aws-sdk", () => {
 
 describe("Unit test for app handler", function () {
     test("verifies successful response", async () => {
-        const event: ScheduledEvent = {
+        const event = {
             id: "cdc73f9d-aea9-11e3-9d5a-835b769c0d9c",
             "detail-type": "Scheduled Event",
             source: "aws.events",
@@ -58,7 +59,7 @@ describe("Unit test for app handler", function () {
             detail: {},
             version: "1",
         }
-        const context: Context = {
+        const context = {
             invokedFunctionArn: "arn:aws:lambda:us-east-2:139480602983:function:MyFunction",
             memoryLimitInMB: "128",
             awsRequestId: "1234567890",
