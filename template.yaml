@@ -214,16 +214,6 @@ Resources:
                 EntryPoints:
                     - app.ts
 
-    ServerlessAccessKeysRotationDepLayer:
-        Type: AWS::Serverless::LayerVersion
-        Properties:
-            LayerName: ServerlessAccessKeysRotationDepLayer
-            Description: Layer with dependencies for ServerlessAccessKeysRotation
-            ContentUri: ./
-            CompatibleRuntimes:
-                - nodejs16.x
-            RetentionPolicy: Retain
-
     # https://docs.aws.amazon.com/lambda/latest/dg/with-sqs-example-use-app-spec.html
     ### Queues ###
     UserAccessKeyLookupQueue:

@@ -1,0 +1,10 @@
+{
+    "name": "store-secrets",
+    "version": "1.0.0",
+    "description": "Store secrets in secrets manager",
+    "author": "Nima Soufiani",
+    "dependencies": {
+        "aws-sdk": "^2.1213.0",
+        "esbuild": "^0.14.14"
+    }
+}

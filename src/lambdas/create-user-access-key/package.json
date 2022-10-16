@@ -1,0 +1,10 @@
+{
+    "name": "create-user-access-key",
+    "version": "1.0.0",
+    "description": "Create a new access key for a user",
+    "author": "Nima Soufiani",
+    "dependencies": {
+        "aws-sdk": "^2.1213.0",
+        "esbuild": "^0.14.14"
+    }
+}
