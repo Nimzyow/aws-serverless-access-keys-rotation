@@ -1,4 +1,4 @@
-import { SQSEvent } from "aws-lambda"
+import { SQSEvent } from "aws-lambda/trigger/sqs"
 
 import SES from "aws-sdk/clients/ses"
 import DynamoDB from "aws-sdk/clients/dynamodb"
