@@ -1,9 +1,11 @@
 import { Context, SQSEvent } from "aws-lambda"
 
-import AWS from "aws-sdk"
-const sns = new AWS.SNS()
+import SNS from "aws-sdk/clients/sns"
+import SecretsManager from "aws-sdk/clients/secretsmanager"
 
-const secretsManager = new AWS.SecretsManager()
+const sns = new SNS()
+
+const secretsManager = new SecretsManager()
 
 const sendSNSNotification = async ({
     region,

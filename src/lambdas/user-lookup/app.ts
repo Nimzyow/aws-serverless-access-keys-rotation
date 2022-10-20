@@ -1,8 +1,9 @@
 import { Context, ScheduledEvent } from "aws-lambda"
 
-import AWS from "aws-sdk"
-const iam = new AWS.IAM()
-const sqs = new AWS.SQS()
+import SQS from "aws-sdk/clients/sqs"
+import IAM from "aws-sdk/clients/iam"
+const iam = new IAM()
+const sqs = new SQS()
 
 export const lambdaHandler = async (event: ScheduledEvent, context: Context) => {
     try {
@@ -13,7 +14,7 @@ export const lambdaHandler = async (event: ScheduledEvent, context: Context) => 
 
         while (iterator < end) {
             console.log("Begin to send to SQS")
-            const params: AWS.SQS.SendMessageRequest = {
+            const params: SQS.SendMessageRequest = {
                 QueueUrl: `https://sqs.${event.region}.amazonaws.com/${
                     context.invokedFunctionArn.split(":")[4]
                 }/UserAccessKeyLookupQueue`,

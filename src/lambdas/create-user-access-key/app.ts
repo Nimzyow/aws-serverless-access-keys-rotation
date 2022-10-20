@@ -1,8 +1,9 @@
 import { Context, SQSEvent } from "aws-lambda"
 
-import AWS from "aws-sdk"
-const iam = new AWS.IAM()
-const sqs = new AWS.SQS()
+import SQS from "aws-sdk/clients/sqs"
+import IAM from "aws-sdk/clients/iam"
+const iam = new IAM()
+const sqs = new SQS()
 
 export const lambdaHandler = async (event: SQSEvent, context: Context) => {
     const awsAccountId = context.invokedFunctionArn.split(":")[4]

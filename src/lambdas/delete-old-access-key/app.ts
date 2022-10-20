@@ -1,8 +1,8 @@
 import { SNSEvent } from "aws-lambda"
 
-import AWS from "aws-sdk"
+import IAM from "aws-sdk/clients/iam"
 
-const iam = new AWS.IAM()
+const iam = new IAM()
 
 export const lambdaHandler = async (event: SNSEvent) => {
     let iterator = 0

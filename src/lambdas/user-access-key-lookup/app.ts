@@ -1,9 +1,12 @@
 import { Context, SQSEvent } from "aws-lambda"
 
-import AWS, { IAM } from "aws-sdk"
 import { PromiseResult } from "aws-sdk/lib/request"
-const iam = new AWS.IAM()
-const sqs = new AWS.SQS()
+import SQS from "aws-sdk/clients/sqs"
+import IAM from "aws-sdk/clients/iam"
+const iam = new IAM()
+const sqs = new SQS()
+
+import { AWSError } from "aws-sdk/lib/error"
 
 const isKeyOutOfDate = ({
     createDate,
@@ -29,7 +32,7 @@ const sendMessage = async ({
     region: string
     awsAccountId: string
 }) => {
-    const params: AWS.SQS.SendMessageRequest = {
+    const params: SQS.SendMessageRequest = {
         QueueUrl: `https://sqs.${region}.amazonaws.com/${awsAccountId}/CreateUserAccessKeyQueue`,
         MessageAttributes: {
             AccessKeyId: {
@@ -55,7 +58,7 @@ export const lambdaHandler = async (event: SQSEvent, context: Context) => {
 
     while (iterator < end) {
         const userName = event.Records[iterator].messageAttributes.UserName.stringValue
-        let accessKeysForUser: PromiseResult<IAM.ListAccessKeysResponse, AWS.AWSError>
+        let accessKeysForUser: PromiseResult<IAM.ListAccessKeysResponse, AWSError>
         try {
             accessKeysForUser = await iam.listAccessKeys({ UserName: userName }).promise()
         } catch (error) {

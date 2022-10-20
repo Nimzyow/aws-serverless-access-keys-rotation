@@ -1,9 +1,13 @@
 import { SQSEvent } from "aws-lambda"
 
-import AWS from "aws-sdk"
+import SES from "aws-sdk/clients/ses"
+import DynamoDB from "aws-sdk/clients/dynamodb"
 import { PromiseResult } from "aws-sdk/lib/request"
-const ses = new AWS.SES()
-const dynamoDb = new AWS.DynamoDB.DocumentClient()
+
+import { AWSError } from "aws-sdk/lib/error"
+
+const ses = new SES()
+const dynamoDb = new DynamoDB.DocumentClient()
 
 export const lambdaHandler = async (event: SQSEvent) => {
     let iterator = 0
@@ -11,7 +15,7 @@ export const lambdaHandler = async (event: SQSEvent) => {
 
     while (iterator < end) {
         const userName = event.Records[iterator].messageAttributes.UserName.stringValue
-        let user: PromiseResult<AWS.DynamoDB.DocumentClient.GetItemOutput, AWS.AWSError>
+        let user: PromiseResult<DynamoDB.DocumentClient.GetItemOutput, AWSError>
         try {
             user = await dynamoDb
                 .get({
@@ -47,7 +51,7 @@ export const lambdaHandler = async (event: SQSEvent) => {
                 },
                 Source: verifiedIdentities.Identities[0],
             }
-            await new AWS.SES().sendEmail(params).promise()
+            await new SES().sendEmail(params).promise()
         } catch (error) {
             console.log(error)
             throw new Error(`Couldn't send email to user: ${userName}`)
