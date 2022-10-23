@@ -97,7 +97,7 @@ jobs:
             - name: Deploy to staging account
               shell: bash
               run: |
-                  sam deploy --stack-name $(echo ${GITHUB_REF##*/} | tr -cd '[a-zA-Z0-9-]') \
+                  sam deploy --stack-name ${TESTING_STACK_NAME} \
                     --capabilities CAPABILITY_IAM \
                     --region ${TESTING_REGION} \
                     --s3-bucket ${TESTING_ARTIFACTS_BUCKET} \
