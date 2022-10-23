@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+    Define dynamodb table
+
+Resources:
+    UserTable:
+        Type: AWS::Serverless::SimpleTable
+        Properties:
+            TableName: User
+            PrimaryKey:
+                Type: String
+                Name: name
+
+Outputs:
+    DynamoDBUserTableName:
+        Description: Name of the DynamoDB Table
+        Value: !Ref UserTable
+    DynamoDBUserTableNameArn:
+        Description: Name of the DynamoDB Table
+        Value: !GetAtt UserTable.Arn

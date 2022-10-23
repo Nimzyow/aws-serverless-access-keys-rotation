@@ -1,0 +1,8 @@
+version = 0.1
+[default]
+
+[default.global.parameters]
+stack_name = "serverless-access-keys-rotation"
+
+[default.sync.parameters]
+profile = "p_sandbox"
