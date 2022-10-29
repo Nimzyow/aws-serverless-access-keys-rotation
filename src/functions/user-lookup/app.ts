@@ -1,11 +1,11 @@
-import { Context, ScheduledEvent } from "aws-lambda"
+import { ScheduledEvent } from "aws-lambda"
 
 import SQS from "aws-sdk/clients/sqs"
 import IAM from "aws-sdk/clients/iam"
 const iam = new IAM({ region: "eu-west-1" })
 const sqs = new SQS({ region: "eu-west-1" })
 
-export const lambdaHandler = async (event: ScheduledEvent, context: Context) => {
+export const lambdaHandler = async (event: ScheduledEvent) => {
     return new Promise((resolve, reject) => {
         iam.listUsers({}, (err, data) => {
             if (err) {
