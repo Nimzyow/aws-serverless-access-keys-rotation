@@ -31,17 +31,10 @@ const sendMessage = async ({
 }) => {
     const params: SQS.SendMessageRequest = {
         QueueUrl: `https://sqs.${region}.amazonaws.com/${awsAccountId}/CreateUserAccessKeyQueue`,
-        MessageAttributes: {
-            AccessKeyId: {
-                DataType: "String",
-                StringValue: accessKeyId,
-            },
-            UserName: {
-                DataType: "String",
-                StringValue: userName,
-            },
-        },
-        MessageBody: `Rotate ${userName}s access key`,
+        MessageBody: JSON.stringify({
+            UserName: userName,
+            AccessKeyId: accessKeyId,
+        }),
     }
     try {
         sqs.sendMessage(params)

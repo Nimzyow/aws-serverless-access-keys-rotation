@@ -21,117 +21,126 @@ const sendSNSNotification = async ({
         TopicArn: `arn:aws:sns:${region}:${awsAccountId}:UpdatedAccessKeyAndStoredSecret`,
     }
 
-    const response = await sns.publish(snsParams).promise()
-
-    console.log("notification sent with id of " + response.MessageId)
+    sns.publish(snsParams, (err, data) => {
+        if (err) {
+            return Promise.reject(err)
+        } else {
+            console.log("sns notification sent")
+            return Promise.resolve(data)
+        }
+    })
 }
 
 export const lambdaHandler = async (event: SQSEvent, context: Context) => {
     const awsAccountId = context.invokedFunctionArn.split(":")[4]
 
-    let iterator = 0
-    const end = event.Records.length
+    return new Promise((resolve, reject) => {
+        event.Records.map(async (record) => {
+            const parsedBody = JSON.parse(record.body)
 
-    while (iterator < end) {
-        const SecretId = event.Records[iterator].messageAttributes.SecretId.stringValue
-        const userName = event.Records[iterator].messageAttributes.Principle.stringValue
+            const SecretsToStore = Object.entries(JSON.parse(record.body)).reduce(
+                (acc, [key, value]) => {
+                    if (key === "SecretId" || key == "Principle") {
+                        return {}
+                    }
+                    return { ...acc, [key]: value }
+                },
+                {}
+            )
 
-        if (SecretId && userName) {
-            const messageAttributesObject = Object.entries(
-                event.Records[iterator].messageAttributes
-            ).reduce((acc, [key, value]) => {
-                if (key === "SecretId" || key == "Principle") {
-                    return {}
-                }
-                return { ...acc, [key]: value.stringValue }
-            }, {})
-            try {
-                await secretsManager
-                    .getSecretValue({
-                        SecretId,
-                    })
-                    .promise()
-
-                await secretsManager
-                    .updateSecret({
-                        SecretId,
-                        SecretString: JSON.stringify({
-                            ...messageAttributesObject,
-                        }),
-                    })
-                    .promise()
-                console.log("Secret updated")
-                await sendSNSNotification({
-                    awsAccountId,
-                    region: event.Records[iterator].awsRegion,
-                    userName,
-                })
-            } catch (error) {
-                try {
-                    const secretsManagerResponse = await secretsManager
-                        .createSecret({
-                            Name: SecretId,
-                            SecretString: JSON.stringify({
-                                ...messageAttributesObject,
-                            }),
-                        })
-                        .promise()
-
-                    await secretsManager
-                        .putResourcePolicy({
-                            SecretId,
-                            ResourcePolicy: JSON.stringify({
-                                Version: "2012-10-17",
-                                Statement: [
-                                    {
-                                        Sid: "EnableIAMUserPermissions",
-                                        Effect: "Allow",
-                                        Principal: {
-                                            AWS: `arn:aws:iam::${awsAccountId}:user/${event.Records[iterator].messageAttributes.Principle.stringValue}`,
+            secretsManager.getSecretValue(
+                {
+                    SecretId: parsedBody.SecretId,
+                },
+                (err, data) => {
+                    if (err) {
+                        secretsManager.createSecret(
+                            {
+                                Name: parsedBody.SecretId,
+                                SecretString: JSON.stringify({
+                                    ...SecretsToStore,
+                                }),
+                            },
+                            (err, data) => {
+                                if (err) {
+                                    console.error("Could not create secret")
+                                    console.error(err)
+                                    return reject(err)
+                                } else {
+                                    secretsManager.putResourcePolicy(
+                                        {
+                                            SecretId: parsedBody.SecretId,
+                                            ResourcePolicy: JSON.stringify({
+                                                Version: "2012-10-17",
+                                                Statement: [
+                                                    {
+                                                        Sid: "EnableIAMUserPermissions",
+                                                        Effect: "Allow",
+                                                        Principal: {
+                                                            AWS: `arn:aws:iam::${awsAccountId}:user/${parsedBody.UserName}`,
+                                                        },
+                                                        Action: [
+                                                            "secretsmanager:GetSecretValue",
+                                                            "secretsmanager:DescribeSecret",
+                                                            "secretsmanager:ListSecretVersionIds",
+                                                            "secretsmanager:GetResourcePolicy",
+                                                        ],
+                                                        Resource: data.ARN,
+                                                    },
+                                                    {
+                                                        Sid: "AllowListingOfSecrets",
+                                                        Effect: "Allow",
+                                                        Principal: {
+                                                            AWS: `arn:aws:iam::${awsAccountId}:user/${parsedBody.UserName}`,
+                                                        },
+                                                        Action: [
+                                                            "secretsmanager:GetRandomPassword",
+                                                            "secretsmanager:ListSecrets",
+                                                        ],
+                                                        Resource: "*",
+                                                    },
+                                                ],
+                                            }),
                                         },
-                                        Action: [
-                                            "secretsmanager:GetSecretValue",
-                                            "secretsmanager:DescribeSecret",
-                                            "secretsmanager:ListSecretVersionIds",
-                                            "secretsmanager:GetResourcePolicy",
-                                        ],
-                                        Resource: secretsManagerResponse.ARN,
-                                    },
-                                    {
-                                        Sid: "AllowListingOfSecrets",
-                                        Effect: "Allow",
-                                        Principal: {
-                                            AWS: `arn:aws:iam::${awsAccountId}:user/${event.Records[iterator].messageAttributes.Principle.stringValue}`,
-                                        },
-                                        Action: [
-                                            "secretsmanager:GetRandomPassword",
-                                            "secretsmanager:ListSecrets",
-                                        ],
-                                        Resource: "*",
-                                    },
-                                ],
-                            }),
-                        })
-                        .promise()
-                    console.log("Secret Created")
-                    console.log("Secrets Manager Resource Policy Updated")
-                    console.log("Secret Created and Resource Policy Updated")
-                } catch (error) {
-                    console.log("error creating secret and attach policy", error)
-                    throw new Error("Couldn't create secret")
+                                        (err, data) => {
+                                            if (err) {
+                                                console.error("Error putting resource policy")
+                                                return reject(err)
+                                            }
+                                            sendSNSNotification({
+                                                awsAccountId,
+                                                region: record.awsRegion,
+                                                userName: parsedBody.UserName,
+                                            })
+                                        }
+                                    )
+                                }
+                            }
+                        )
+                    } else {
+                        secretsManager.updateSecret(
+                            {
+                                SecretId: parsedBody.SecretId,
+                                SecretString: JSON.stringify({
+                                    ...SecretsToStore,
+                                }),
+                            },
+                            (err, data) => {
+                                if (err) {
+                                    console.error("Error updating secret")
+                                    console.error(err)
+                                    return reject(err)
+                                }
+                                sendSNSNotification({
+                                    awsAccountId,
+                                    region: record.awsRegion,
+                                    userName: parsedBody.UserName,
+                                })
+                            }
+                        )
+                    }
                 }
-                try {
-                    await sendSNSNotification({
-                        awsAccountId,
-                        region: event.Records[iterator].awsRegion,
-                        userName,
-                    })
-                } catch (error) {
-                    console.log("Couldn't send notification", error)
-                    throw new Error("Couldn't send notification")
-                }
-            }
-        }
-        iterator++
-    }
+            )
+        })
+    })
 }

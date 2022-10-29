@@ -8,68 +8,67 @@ const sqs = new SQS()
 export const lambdaHandler = async (event: SQSEvent, context: Context) => {
     const awsAccountId = context.invokedFunctionArn.split(":")[4]
 
-    let iterator = 0
-    const end = event.Records.length
-
-    while (iterator < end) {
-        const userName = event.Records[iterator].messageAttributes.UserName.stringValue
-
-        const accessKeysForUser = await iam.listAccessKeys({ UserName: userName }).promise()
-        try {
-            if (accessKeysForUser.AccessKeyMetadata.length > 0) {
-                const sortedAccessKeys = accessKeysForUser.AccessKeyMetadata.sort((a, b) => {
-                    if (a.CreateDate && b.CreateDate) {
-                        return b.CreateDate.getTime() - a.CreateDate.getTime()
+    return new Promise((resolve, reject) => {
+        event.Records.map(async (record) => {
+            const { UserName } = JSON.parse(record.body)
+            if (!UserName) {
+                reject("No username found")
+            } else {
+                iam.listAccessKeys({ UserName }, (err, data) => {
+                    if (err) {
+                        return reject(err)
                     } else {
-                        return 0
+                        const sortedAccessKeys = data.AccessKeyMetadata.sort((a, b) => {
+                            if (a.CreateDate && b.CreateDate) {
+                                return b.CreateDate.getTime() - a.CreateDate.getTime()
+                            } else {
+                                return 0
+                            }
+                        })
+
+                        const accessKeysToDelete = sortedAccessKeys.slice(1)
+
+                        for (const accessKey of accessKeysToDelete) {
+                            if (accessKey.AccessKeyId) {
+                                try {
+                                    iam.deleteAccessKey({
+                                        AccessKeyId: accessKey.AccessKeyId,
+                                        UserName,
+                                    }).promise()
+                                    console.log("Access key deleted" + accessKey.AccessKeyId)
+                                } catch (error) {
+                                    console.log(
+                                        `Couldn't delete oldest access key for user: ${UserName}`
+                                    )
+                                    console.error(error)
+                                    return reject(error)
+                                }
+                            }
+                        }
+
+                        iam.createAccessKey({ UserName }, (err, data) => {
+                            if (err) {
+                                console.error(err)
+                                return reject(err)
+                            } else {
+                                const params: SQS.SendMessageRequest = {
+                                    QueueUrl: `https://sqs.${record.awsRegion}.amazonaws.com/${awsAccountId}/StoreSecretsQueue`,
+                                    MessageBody: JSON.stringify({
+                                        SecretId: `${UserName}-access-key`,
+                                        UserName,
+                                        AccessKeyId: data.AccessKey.AccessKeyId,
+                                        SecretAccessKey: data.AccessKey.SecretAccessKey,
+                                    }),
+                                }
+                                sqs.sendMessage(params)
+                                console.log("message sent to store secrets queue")
+                                return resolve(undefined)
+                            }
+                        })
+                        resolve(data)
                     }
                 })
-
-                const accessKeysToDelete = sortedAccessKeys.slice(1)
-
-                for (const accessKey of accessKeysToDelete) {
-                    if (accessKey.AccessKeyId) {
-                        await iam
-                            .deleteAccessKey({ AccessKeyId: accessKey.AccessKeyId, UserName: userName })
-                            .promise()
-                    }
-                }
             }
-        } catch (error) {
-            console.log(error)
-            throw new Error(`Couldn't delete oldest access key for user: ${userName}`)
-        }
-
-        try {
-            const createUserAccessKey = await iam.createAccessKey({ UserName: userName }).promise()
-            await sqs
-                .sendMessage({
-                    MessageBody: "User access key created",
-                    QueueUrl: `https://sqs.${event.Records[iterator].awsRegion}.amazonaws.com/${awsAccountId}/StoreSecretsQueue`,
-                    MessageAttributes: {
-                        SecretId: {
-                            DataType: "String",
-                            StringValue: `${userName}-access-key`,
-                        },
-                        Principle: {
-                            DataType: "String",
-                            StringValue: `${userName}`,
-                        },
-                        AccessKeyId: {
-                            DataType: "String",
-                            StringValue: createUserAccessKey.AccessKey.AccessKeyId,
-                        },
-                        SecretAccessKey: {
-                            DataType: "String",
-                            StringValue: createUserAccessKey.AccessKey.SecretAccessKey,
-                        },
-                    },
-                })
-                .promise()
-        } catch (error) {
-            console.log(error)
-            throw new Error("Couldn't create user access key")
-        }
-        iterator++
-    }
+        })
+    })
 }

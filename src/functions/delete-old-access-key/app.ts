@@ -5,38 +5,43 @@ import IAM from "aws-sdk/clients/iam"
 const iam = new IAM()
 
 export const lambdaHandler = async (event: SNSEvent) => {
-    let iterator = 0
-    const end = event.Records.length
+    return new Promise((resolve, reject) => {
+        event.Records.map(async (record) => {
+            const { UserName }: { UserName: string } = JSON.parse(record.Sns.Message)
+            iam.listAccessKeys({ UserName }, (err, data) => {
+                if (err) {
+                    reject(err)
+                } else if (data.AccessKeyMetadata.length > 0) {
+                    const sortedAccessKeys = data.AccessKeyMetadata.sort((a, b) => {
+                        if (a.CreateDate && b.CreateDate) {
+                            return b.CreateDate.getTime() - a.CreateDate.getTime()
+                        } else {
+                            return 0
+                        }
+                    })
+                    const accessKeysToDelete = sortedAccessKeys.slice(1)
 
-    while (iterator < end) {
-        const userName = event.Records[0].Sns.MessageAttributes.UserName.Value
-
-        try {
-            const accessKeysForUser = await iam.listAccessKeys({ UserName: userName }).promise()
-
-            if (accessKeysForUser.AccessKeyMetadata.length > 0) {
-                const sortedAccessKeys = accessKeysForUser.AccessKeyMetadata.sort((a, b) => {
-                    if (a.CreateDate && b.CreateDate) {
-                        return b.CreateDate.getTime() - a.CreateDate.getTime()
-                    } else {
-                        return 0
-                    }
-                })
-
-                const accessKeysToDelete = sortedAccessKeys.slice(1)
-
-                for (const accessKey of accessKeysToDelete) {
-                    if (accessKey.AccessKeyId) {
-                        await iam
-                            .deleteAccessKey({ AccessKeyId: accessKey.AccessKeyId, UserName: userName })
-                            .promise()
+                    for (const accessKey of accessKeysToDelete) {
+                        if (accessKey.AccessKeyId) {
+                            iam.deleteAccessKey(
+                                {
+                                    AccessKeyId: accessKey.AccessKeyId,
+                                    UserName,
+                                },
+                                (err, data) => {
+                                    if (err) {
+                                        console.error(err)
+                                        reject(err)
+                                    } else {
+                                        console.log("Access key deleted" + accessKey.AccessKeyId)
+                                        resolve("Access keys deleted")
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
-            }
-        } catch (error) {
-            console.log(error)
-            throw new Error("Couldn't delete old access keys")
-        }
-        iterator++
-    }
+            })
+        })
+    })
 }
