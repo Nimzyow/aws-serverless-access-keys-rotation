@@ -40,7 +40,7 @@ jobs:
         steps:
             - uses: actions/checkout@v2
             - run: |
-                  # trigger the tests here
+                  yarn install && yarn test
 
     delete-feature:
         if: startsWith(github.event.ref, 'feature') && github.event_name == 'delete'
