@@ -11,7 +11,7 @@ Resources:
             QueueName: UserAccessKeyLookupQueue
             RedrivePolicy:
                 deadLetterTargetArn: !GetAtt UserAccessKeyLookupDLQ.Arn
-                maxReceiveCount: 5
+                maxReceiveCount: 2
     UserAccessKeyLookupDLQ:
         Type: AWS::SQS::Queue
         Properties:
@@ -24,7 +24,7 @@ Resources:
             QueueName: CreateUserAccessKeyQueue
             RedrivePolicy:
                 deadLetterTargetArn: !GetAtt CreateUserAccessKeyDLQ.Arn
-                maxReceiveCount: 5
+                maxReceiveCount: 2
     CreateUserAccessKeyDLQ:
         Type: AWS::SQS::Queue
         Properties:
@@ -37,7 +37,7 @@ Resources:
             QueueName: StoreSecretsQueue
             RedrivePolicy:
                 deadLetterTargetArn: !GetAtt StoreSecretsQueueDLQ.Arn
-                maxReceiveCount: 5
+                maxReceiveCount: 2
     StoreSecretsQueueDLQ:
         Type: AWS::SQS::Queue
         Properties:
@@ -50,7 +50,7 @@ Resources:
             QueueName: DeleteOldAccessKeyQueue
             RedrivePolicy:
                 deadLetterTargetArn: !GetAtt DeleteOldAccessKeyQueueDLQ.Arn
-                maxReceiveCount: 5
+                maxReceiveCount: 2
     DeleteOldAccessKeyQueueDLQ:
         Type: AWS::SQS::Queue
         Properties:
@@ -63,7 +63,7 @@ Resources:
             QueueName: SendEmailQueue
             RedrivePolicy:
                 deadLetterTargetArn: !GetAtt SendEmailDLQ.Arn
-                maxReceiveCount: 5
+                maxReceiveCount: 2
     SendEmailDLQ:
         Type: AWS::SQS::Queue
         Properties:

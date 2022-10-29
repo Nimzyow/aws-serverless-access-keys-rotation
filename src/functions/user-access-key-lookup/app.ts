@@ -1,12 +1,9 @@
 import { Context, SQSEvent } from "aws-lambda"
 
-import { PromiseResult } from "aws-sdk/lib/request"
 import SQS from "aws-sdk/clients/sqs"
 import IAM from "aws-sdk/clients/iam"
 const iam = new IAM()
 const sqs = new SQS()
-
-import { AWSError } from "aws-sdk/lib/error"
 
 const isKeyOutOfDate = ({
     createDate,
@@ -46,50 +43,42 @@ const sendMessage = async ({
         },
         MessageBody: `Rotate ${userName}s access key`,
     }
-    const response = await sqs.sendMessage(params).promise()
-    console.log("message sent with id of " + response.MessageId)
+    try {
+        sqs.sendMessage(params)
+        console.log("message sent")
+        return Promise.resolve(undefined)
+    } catch (error) {
+        console.error(error)
+        return Promise.reject(error)
+    }
 }
 
 export const lambdaHandler = async (event: SQSEvent, context: Context) => {
     console.log("UserAccessLookUp started")
-
-    let iterator = 0
-    const end = event.Records.length
-
-    while (iterator < end) {
-        const userName = event.Records[iterator].messageAttributes.UserName.stringValue
-        let accessKeysForUser: PromiseResult<IAM.ListAccessKeysResponse, AWSError>
-        try {
-            accessKeysForUser = await iam.listAccessKeys({ UserName: userName }).promise()
-        } catch (error) {
-            throw new Error(`Couldn't list access keys for user: ${userName}`)
-        }
-
-        const sortedAccessKeys = accessKeysForUser.AccessKeyMetadata.sort((a, b) => {
-            if (a.CreateDate && b.CreateDate) {
-                return b.CreateDate.getTime() - a.CreateDate.getTime()
+    return new Promise((resolve, reject) => {
+        event.Records.map(async (record) => {
+            const { UserName } = JSON.parse(record.body)
+            if (!UserName) {
+                reject("No username found")
             } else {
-                return 0
+                iam.listAccessKeys({ UserName }, (err, data) => {
+                    if (err) {
+                        reject(err)
+                    } else {
+                        data.AccessKeyMetadata.map((accessKey) => {
+                            if (isKeyOutOfDate({ createDate: accessKey.CreateDate })) {
+                                sendMessage({
+                                    accessKeyId: accessKey.AccessKeyId || "",
+                                    userName: UserName,
+                                    region: record.awsRegion,
+                                    awsAccountId: context.invokedFunctionArn.split(":")[4],
+                                })
+                            }
+                        })
+                        resolve(data)
+                    }
+                })
             }
         })
-
-        for (const accessKey of sortedAccessKeys) {
-            if (accessKey.AccessKeyId && isKeyOutOfDate({ createDate: accessKey.CreateDate })) {
-                try {
-                    await sendMessage({
-                        accessKeyId: accessKey.AccessKeyId,
-                        userName: userName || "unknown",
-                        region: event.Records[iterator].awsRegion,
-                        awsAccountId: context.invokedFunctionArn.split(":")[4],
-                    })
-                    break
-                } catch (error) {
-                    console.log(error)
-                    throw new Error(`Couldn't send message to update access key for user: ${userName}`)
-                }
-            }
-        }
-        iterator++
-    }
-    console.log("UserAccessLookUp finished")
+    })
 }

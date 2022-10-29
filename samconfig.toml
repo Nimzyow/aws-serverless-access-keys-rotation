@@ -6,3 +6,6 @@ stack_name = "serverless-access-keys-rotation"
 
 [default.sync.parameters]
 profile = "p_sandbox"
+
+[default.logs.parameters]
+profile = "p_sandbox"
