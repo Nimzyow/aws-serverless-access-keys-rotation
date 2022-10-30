@@ -1,0 +1,116 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+    alarms
+
+Parameters:
+    UserAccessKeyLookupDLQName:
+        Type: String
+        Description: UserAccessKeyLookupDLQ name
+    DLQAlarmBreachTopic:
+        Type: String
+        Description: DLQAlarmBreachTopic
+    CreateUserAccessKeyDLQName:
+        Type: String
+        Description: CreateUserAccessKeyDLQ
+    StoreSecretsDLQName:
+        Type: String
+        Description: StoreSecretsQueueDLQ
+    DeleteOldAccessKeyDLQName:
+        Type: String
+        Description: DeleteOldAccessKeyQueueDLQ
+    SendEmailDLQName:
+        Type: String
+        Description: SendEmailQueueDLQ
+
+Resources:
+    UserAccessKeyLookupDLQAlarm:
+        Type: AWS::CloudWatch::Alarm
+        Properties:
+            AlarmName: UserAccessKeyLookupDLQAlarm
+            AlarmDescription: UserAccessKeyLookupDLQ Alarm
+            AlarmActions:
+                - !Ref DLQAlarmBreachTopic
+            MetricName: ApproximateNumberOfMessagesVisible
+            Namespace: AWS/SQS
+            Statistic: Sum
+            Period: 300
+            ComparisonOperator: GreaterThanThreshold
+            EvaluationPeriods: 1
+            Threshold: 0
+            TreatMissingData: notBreaching
+            Dimensions:
+                - Name: QueueName
+                  Value: !Ref UserAccessKeyLookupDLQName
+    CreateUserAccessKeyDLQAlarm:
+        Type: AWS::CloudWatch::Alarm
+        Properties:
+            AlarmName: CreateUserAccessKeyDLQAlarm
+            AlarmDescription: CreateUserAccessKeyDLQ Alarm
+            AlarmActions:
+                - !Ref DLQAlarmBreachTopic
+            MetricName: ApproximateNumberOfMessagesVisible
+            Namespace: AWS/SQS
+            Statistic: Sum
+            Period: 300
+            ComparisonOperator: GreaterThanThreshold
+            EvaluationPeriods: 1
+            Threshold: 0
+            TreatMissingData: notBreaching
+            Dimensions:
+                - Name: QueueName
+                  Value: !Ref CreateUserAccessKeyDLQName
+    StoreSecretsQueueDLQAlarm:
+        Type: AWS::CloudWatch::Alarm
+        Properties:
+            AlarmName: StoreSecretsQueueDLQAlarm
+            AlarmDescription: StoreSecretsQueueDLQ Alarm
+            AlarmActions:
+                - !Ref DLQAlarmBreachTopic
+            MetricName: ApproximateNumberOfMessagesVisible
+            Namespace: AWS/SQS
+            Statistic: Sum
+            Period: 300
+            ComparisonOperator: GreaterThanThreshold
+            EvaluationPeriods: 1
+            Threshold: 0
+            TreatMissingData: notBreaching
+            Dimensions:
+                - Name: QueueName
+                  Value: !Ref StoreSecretsDLQName
+    DeleteOldAccessKeyQueueDLQAlarm:
+        Type: AWS::CloudWatch::Alarm
+        Properties:
+            AlarmName: DeleteOldAccessKeyQueueDLQAlarm
+            AlarmDescription: DeleteOldAccessKeyQueueDLQ Alarm
+            AlarmActions:
+                - !Ref DLQAlarmBreachTopic
+            MetricName: ApproximateNumberOfMessagesVisible
+            Namespace: AWS/SQS
+            Statistic: Sum
+            Period: 300
+            ComparisonOperator: GreaterThanThreshold
+            EvaluationPeriods: 1
+            Threshold: 0
+            TreatMissingData: notBreaching
+            Dimensions:
+                - Name: QueueName
+                  Value: !Ref DeleteOldAccessKeyDLQName
+    SendEmailQueueDLQAlarm:
+        Type: AWS::CloudWatch::Alarm
+        Properties:
+            AlarmName: SendEmailQueueDLQAlarm
+            AlarmDescription: SendEmailQueueDLQ Alarm
+            AlarmActions:
+                - !Ref DLQAlarmBreachTopic
+            MetricName: ApproximateNumberOfMessagesVisible
+            Namespace: AWS/SQS
+            Statistic: Sum
+            Period: 300
+            ComparisonOperator: GreaterThanThreshold
+            EvaluationPeriods: 1
+            Threshold: 0
+            TreatMissingData: notBreaching
+            Dimensions:
+                - Name: QueueName
+                  Value: !Ref SendEmailDLQName

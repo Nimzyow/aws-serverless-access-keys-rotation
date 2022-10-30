@@ -1,0 +1,33 @@
+{
+    "name": "serverless-access-keys-rotation",
+    "version": "1.0.0",
+    "description": "Automatically rotate users access keys every 90 days and store access key id and secret id in secrets manager",
+    "author": "Nima Soufiani",
+    "scripts": {
+        "unit": "jest",
+        "lint": "eslint '*.ts' --quiet --fix",
+        "compile": "tsc",
+        "test": "jest"
+    },
+    "dependencies": {
+        "esbuild": "^0.14.14"
+    },
+    "devDependencies": {
+        "@types/aws-lambda": "^8.10.92",
+        "@types/jest": "^29.1.2",
+        "@types/node": "^18.11.0",
+        "@typescript-eslint/eslint-plugin": "^5.10.2",
+        "@typescript-eslint/parser": "^5.10.2",
+        "aws-sdk-client-mock": "^2.0.0",
+        "aws-sdk-client-mock-jest": "^2.0.0",
+        "esbuild-jest": "^0.5.0",
+        "eslint": "^8.8.0",
+        "eslint-config-prettier": "^8.3.0",
+        "eslint-plugin-prettier": "^4.0.0",
+        "jest": "^29.2.0",
+        "prettier": "^2.5.1",
+        "ts-jest": "^29.0.3",
+        "ts-node": "^10.4.0",
+        "typescript": "^4.5.5"
+    }
+}

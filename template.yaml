@@ -1,150 +1,42 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  access-keys-rotation
+    access-keys-rotation
 
-  Sample SAM Template for access-keys-rotation
-
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
-Globals:
-  Function:
-    Timeout: 10
-    MemorySize: 1024
-    Runtime: nodejs16.x
-    Architectures:
-      - x86_64
+    Sample SAM Template for access-keys-rotation
 
 Resources:
-  UserLookup:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-    Properties:
-      FunctionName: UserLookup
-      CodeUri: user-lookup/
-      Handler: app.lambdaHandler
-      Policies:
-        - Statement:
-            - Sid: IAMListUsersPolicy
-              Effect: Allow
-              Action:
-                - iam:ListUsers
-              Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
-            - Sid: SQSSendMessageToUserQueue
-              Effect: Allow
-              Action:
-                - sqs:SendMessage
-              Resource: !GetAtt UserQueue.Arn
-      Events:
-        CloudWatchEvent:
-          Type: Schedule # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
-          Properties:
-            Schedule: rate(1 day)
-            Name: start-access-keys-check
-            Description: Trigger a lambda function every 24 hours to check if access keys need to be rotated
-            Enabled: True
-    Metadata: # Manage esbuild properties
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: "es2020"
-        Sourcemap: true
-        EntryPoints:
-          - app.ts
-  UserAccessKeyLookup:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-    Properties:
-      FunctionName: UserAccessKeyLookup
-      CodeUri: user-access-key-lookup/
-      Handler: app.lambdaHandler
-      Policies:
-        - Statement:
-            - Sid: IAMListDeleteUserAccessKeysPolicy
-              Effect: Allow
-              Action:
-                - iam:ListAccessKeys
-                - iam:DeleteAccessKey
-              Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
-            - Sid: SQSSendMessageToCheckAccessKeyAgeOfUserQueue
-              Effect: Allow
-              Action:
-                - sqs:SendMessage
-              Resource: !GetAtt UpdateUserAccessKeyQueue.Arn
-      Events:
-        UserQueue:
-          Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
-          Properties:
-            Queue: !GetAtt UserQueue.Arn
-  CreateUserAccessKey:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-    Properties:
-      FunctionName: CreateUserAccessKey
-      CodeUri: create-user-access-key/
-      Handler: app.lambdaHandler
-      # Policies:
-      #   - Statement:
-      #       - Sid: IAMListDeleteUserAccessKeysPolicy
-      #         Effect: Allow
-      #         Action:
-      #           - iam:ListAccessKeys
-      #           - iam:DeleteAccessKey
-      #         Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/*"
-      #       - Sid: SQSSendMessageToCheckAccessKeyAgeOfUserQueue
-      #         Effect: Allow
-      #         Action:
-      #           - sqs:SendMessage
-      #         Resource: !GetAtt UpdateUserAccessKeyQueue.Arn
-      Events:
-        UserQueue:
-          Type: SQS # More info about Schedule Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#schedule
-          Properties:
-            Queue: !GetAtt UpdateUserAccessKeyQueue.Arn
+    Queues:
+        Type: AWS::Serverless::Application
+        Properties:
+            Location: src/queues/template.yaml
 
-    Metadata: # Manage esbuild properties
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: "es2020"
-        Sourcemap: true
-        EntryPoints:
-          - app.ts
+    DynamoDB:
+        Type: AWS::Serverless::Application
+        Properties:
+            Location: src/db/template.yaml
 
-  # https://docs.aws.amazon.com/lambda/latest/dg/with-sqs-example-use-app-spec.html
-  UserQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: UserQueue
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt UserDLQ.Arn
-        maxReceiveCount: 5
-  UserDLQ:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: UserDLQ
-      MessageRetentionPeriod: 1209600
+    Alarms:
+        Type: AWS::Serverless::Application
+        Properties:
+            Location: src/alarms/template.yaml
+            Parameters:
+                UserAccessKeyLookupDLQName: !GetAtt Queues.Outputs.UserAccessKeyLookupDLQName
+                CreateUserAccessKeyDLQName: !GetAtt Queues.Outputs.CreateUserAccessKeyDLQName
+                DLQAlarmBreachTopic: !GetAtt Queues.Outputs.DLQAlarmBreachTopic
+                StoreSecretsDLQName: !GetAtt Queues.Outputs.StoreSecretsQueueDLQName
+                DeleteOldAccessKeyDLQName: !GetAtt Queues.Outputs.DeleteOldAccessKeyQueueDLQName
+                SendEmailDLQName: !GetAtt Queues.Outputs.SendEmailDLQName
 
-  UpdateUserAccessKeyQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: UpdateUserAccessKeyQueue
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt UpdateUserAccessKeyDLQ.Arn
-        maxReceiveCount: 5
-  UpdateUserAccessKeyDLQ:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: UpdateUserAccessKeyDLQ
-      MessageRetentionPeriod: 1209600
-
-Outputs:
-  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-  # Find out more about other implicit resources you can reference within SAM
-  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  UserLookupFunction:
-    Description: "UserLookup Lambda Function ARN"
-    Value: !GetAtt UserLookup.Arn
-  UserAccessKeyLookupFunctionIamRole:
-    Description: "Implicit IAM Role created for UserAccessKeyLookup function"
-    Value: !GetAtt UserAccessKeyLookup.Arn
-  UserQueueURL:
-    Description: "The queue which UserAccessKeyLookup will send to"
-    Value:
-      Ref: "UserQueue"
+    Functions:
+        Type: AWS::Serverless::Application
+        Properties:
+            Location: src/functions/template.yaml
+            Parameters:
+                UserAccessKeyLookupQueueArn: !GetAtt Queues.Outputs.UserAccessKeyLookupQueueArn
+                CreateUserAccessKeyQueueArn: !GetAtt Queues.Outputs.CreateUserAccessKeyQueueArn
+                StoreSecretsQueueArn: !GetAtt Queues.Outputs.StoreSecretsQueueArn
+                DynamoDBUserTableNameArn: !GetAtt DynamoDB.Outputs.DynamoDBUserTableNameArn
+                SendEmailQueueArn: !GetAtt Queues.Outputs.SendEmailQueueArn
+                UpdatedAccessKeyAndStoredSecretSNSTopic: !GetAtt Queues.Outputs.UpdatedAccessKeyAndStoredSecretSNSTopic
+                DeleteOldAccessKeyQueueArn: !GetAtt Queues.Outputs.DeleteOldAccessKeyQueueArn

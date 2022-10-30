@@ -1,0 +1,167 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+    queues
+
+Resources:
+    # https://docs.aws.amazon.com/lambda/latest/dg/with-sqs-example-use-app-spec.html
+    UserAccessKeyLookupQueue:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: UserAccessKeyLookupQueue
+            RedrivePolicy:
+                deadLetterTargetArn: !GetAtt UserAccessKeyLookupDLQ.Arn
+                maxReceiveCount: 2
+    UserAccessKeyLookupDLQ:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: UserAccessKeyLookupDLQ
+            MessageRetentionPeriod: 1209600
+
+    CreateUserAccessKeyQueue:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: CreateUserAccessKeyQueue
+            RedrivePolicy:
+                deadLetterTargetArn: !GetAtt CreateUserAccessKeyDLQ.Arn
+                maxReceiveCount: 2
+    CreateUserAccessKeyDLQ:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: CreateUserAccessKeyDLQ
+            MessageRetentionPeriod: 1209600
+
+    StoreSecretsQueue:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: StoreSecretsQueue
+            RedrivePolicy:
+                deadLetterTargetArn: !GetAtt StoreSecretsQueueDLQ.Arn
+                maxReceiveCount: 2
+    StoreSecretsQueueDLQ:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: StoreSecretsQueueDLQ
+            MessageRetentionPeriod: 1209600
+
+    DeleteOldAccessKeyQueue:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: DeleteOldAccessKeyQueue
+            RedrivePolicy:
+                deadLetterTargetArn: !GetAtt DeleteOldAccessKeyQueueDLQ.Arn
+                maxReceiveCount: 2
+    DeleteOldAccessKeyQueueDLQ:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: DeleteOldAccessKeyQueueDLQ
+            MessageRetentionPeriod: 1209600
+
+    SendEmailQueue:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: SendEmailQueue
+            RedrivePolicy:
+                deadLetterTargetArn: !GetAtt SendEmailDLQ.Arn
+                maxReceiveCount: 2
+    SendEmailDLQ:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: SendEmailQueueDLQ
+            MessageRetentionPeriod: 1209600
+
+    UpdatedAccessKeyAndStoredSecretSNSTopic:
+        Type: AWS::SNS::Topic
+        Properties:
+            TopicName: UpdatedAccessKeyAndStoredSecret
+            DisplayName: UpdatedAccessKeyAndStoredSecret
+            Subscription:
+                - Endpoint: !GetAtt SendEmailQueue.Arn
+                  Protocol: sqs
+                - Endpoint: !GetAtt DeleteOldAccessKeyQueue.Arn
+                  Protocol: sqs
+
+    DLQAlarmBreachTopic:
+        Type: AWS::SNS::Topic
+        Properties:
+            TopicName: AlarmBreach
+            DisplayName: AlarmBreach
+
+    ### SNS Subscriptions ###
+    # DLQAlarmBreachSubscription:
+    #     Type: AWS::SNS::Subscription
+    #     Properties:
+    #         Endpoint: test@example.com
+    #         Protocol: email
+    #         TopicArn: !Ref DLQAlarmBreachTopic
+
+Outputs:
+    UserAccessKeyLookupQueue:
+        Description: UserAccessKeyLookupQueue
+        Value: !Ref UserAccessKeyLookupQueue
+    UserAccessKeyLookupQueueArn:
+        Description: UserAccessKeyLookupQueueArn
+        Value: !GetAtt UserAccessKeyLookupQueue.Arn
+    UserAccessKeyLookupDLQName:
+        Description: UserAccessKeyLookupDLQ name
+        Value: !GetAtt UserAccessKeyLookupDLQ.QueueName
+    UserAccessKeyLookupDLQArn:
+        Description: UserAccessKeyLookupDLQArn
+        Value: !GetAtt UserAccessKeyLookupDLQ.Arn
+
+    CreateUserAccessKeyQueue:
+        Description: CreateUserAccessKeyQueue
+        Value: !Ref CreateUserAccessKeyQueue
+    CreateUserAccessKeyQueueArn:
+        Description: CreateUserAccessKeyQueueArn
+        Value: !GetAtt CreateUserAccessKeyQueue.Arn
+    CreateUserAccessKeyDLQName:
+        Description: CreateUserAccessKeyDLQ name
+        Value: !GetAtt CreateUserAccessKeyDLQ.QueueName
+    CreateUserAccessKeyDLQArn:
+        Description: CreateUserAccessKeyDLQArn
+        Value: !GetAtt CreateUserAccessKeyDLQ.Arn
+
+    StoreSecretsQueue:
+        Description: StoreSecretsQueue
+        Value: !Ref StoreSecretsQueue
+    StoreSecretsQueueArn:
+        Description: StoreSecretsQueueArn
+        Value: !GetAtt StoreSecretsQueue.Arn
+    StoreSecretsQueueDLQName:
+        Description: StoreSecretsQueueDLQ name
+        Value: !GetAtt StoreSecretsQueueDLQ.QueueName
+    StoreSecretsQueueDLQArn:
+        Description: StoreSecretsQueueDLQArn
+        Value: !GetAtt StoreSecretsQueueDLQ.Arn
+
+    DeleteOldAccessKeyQueue:
+        Description: DeleteOldAccessKeyQueue
+        Value: !Ref DeleteOldAccessKeyQueue
+    DeleteOldAccessKeyQueueArn:
+        Description: DeleteOldAccessKeyQueueArn
+        Value: !GetAtt DeleteOldAccessKeyQueue.Arn
+    DeleteOldAccessKeyQueueDLQName:
+        Description: DeleteOldAccessKeyQueueDLQ name
+        Value: !GetAtt DeleteOldAccessKeyQueueDLQ.QueueName
+    DeleteOldAccessKeyQueueDLQArn:
+        Description: DeleteOldAccessKeyQueueDLQArn
+        Value: !GetAtt DeleteOldAccessKeyQueueDLQ.Arn
+
+    SendEmailQueue:
+        Description: SendEmailQueue
+        Value: !Ref SendEmailQueue
+    SendEmailQueueArn:
+        Description: SendEmailQueueArn
+        Value: !GetAtt SendEmailQueue.Arn
+    SendEmailDLQName:
+        Description: SendEmailQueue name
+        Value: !GetAtt SendEmailDLQ.QueueName
+
+    DLQAlarmBreachTopic:
+        Description: DLQAlarmBreachTopic
+        Value: !Ref DLQAlarmBreachTopic
+
+    UpdatedAccessKeyAndStoredSecretSNSTopic:
+        Description: UpdatedAccessKeyAndStoredSecretSNSTopic
+        Value: !Ref UpdatedAccessKeyAndStoredSecretSNSTopic
