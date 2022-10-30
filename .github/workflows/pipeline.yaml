@@ -39,9 +39,9 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v2
-            - run: for d in ./src/functions/ ; do (cd "$d" && yarn install); done
-            - run: |
-                  yarn install && yarn test
+            - run: for d in ./src/functions/ ; do (cd "$d" && yarn install); done && cd ../../.. && yarn install && yarn test
+            # - run: |
+            #       yarn install && yarn test
 
     delete-feature:
         if: startsWith(github.event.ref, 'feature') && github.event_name == 'delete'
