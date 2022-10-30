@@ -5,6 +5,8 @@
     "author": "Nima Soufiani",
     "dependencies": {
         "aws-sdk": "^2.1213.0",
-        "esbuild": "^0.14.14"
+        "esbuild": "^0.14.14",
+        "@aws-sdk/client-sns": "^3.199.0",
+        "@aws-sdk/client-secrets-manager": "^3.199.0"
     }
 }
