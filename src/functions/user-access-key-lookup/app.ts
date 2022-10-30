@@ -1,15 +1,9 @@
-import { Context, SQSEvent } from "aws-lambda"
+import { SQSEvent } from "aws-lambda"
 
-import SQS from "aws-sdk/clients/sqs"
-import IAM from "aws-sdk/clients/iam"
-const iam = new IAM()
-const sqs = new SQS()
+import { IAMClient, ListAccessKeysCommand } from "@aws-sdk/client-iam"
+import { SendMessageCommand, SQSClient, SendMessageCommandInput } from "@aws-sdk/client-sqs"
 
-const isKeyOutOfDate = ({
-    createDate,
-}: {
-    createDate?: NonNullable<IAM.AccessKeyMetadata["CreateDate"]>
-}) => {
+const isKeyOutOfDate = ({ createDate }: { createDate?: Date }) => {
     if (!createDate) {
         return false
     }
@@ -24,12 +18,13 @@ const sendMessage = async ({
     region,
     awsAccountId,
 }: {
-    accessKeyId: NonNullable<IAM.AccessKeyMetadata["AccessKeyId"]>
+    accessKeyId: string
     userName: string
     region: string
     awsAccountId: string
 }) => {
-    const params: SQS.SendMessageRequest = {
+    const sqsClient = new SQSClient({ region })
+    const params: SendMessageCommandInput = {
         QueueUrl: `https://sqs.${region}.amazonaws.com/${awsAccountId}/CreateUserAccessKeyQueue`,
         MessageBody: JSON.stringify({
             UserName: userName,
@@ -37,41 +32,38 @@ const sendMessage = async ({
         }),
     }
     try {
-        sqs.sendMessage(params)
+        const command = new SendMessageCommand(params)
+        await sqsClient.send(command)
         console.log("message sent")
-        return Promise.resolve(undefined)
     } catch (error) {
         console.error(error)
-        return Promise.reject(error)
+        throw new Error("Error thrown")
     }
 }
 
-export const lambdaHandler = async (event: SQSEvent, context: Context) => {
+export const lambdaHandler = async (event: SQSEvent) => {
     console.log("UserAccessLookUp started")
-    return new Promise((resolve, reject) => {
-        event.Records.map(async (record) => {
-            const { UserName } = JSON.parse(record.body)
-            if (!UserName) {
-                reject("No username found")
-            } else {
-                iam.listAccessKeys({ UserName }, (err, data) => {
-                    if (err) {
-                        reject(err)
-                    } else {
-                        data.AccessKeyMetadata.map((accessKey) => {
-                            if (isKeyOutOfDate({ createDate: accessKey.CreateDate })) {
-                                sendMessage({
-                                    accessKeyId: accessKey.AccessKeyId || "",
-                                    userName: UserName,
-                                    region: record.awsRegion,
-                                    awsAccountId: context.invokedFunctionArn.split(":")[4],
-                                })
-                            }
-                        })
-                        resolve(data)
-                    }
+    for (const record of event.Records) {
+        const message = JSON.parse(record.body)
+        const userName = message.UserName
+        const region = message.region
+        const awsAccountId = message.awsAccountId
+        const iamClient = new IAMClient({ region })
+        const command = new ListAccessKeysCommand({ UserName: userName })
+        const response = await iamClient.send(command)
+        if (!response.AccessKeyMetadata) {
+            console.log("No access keys found")
+            return
+        }
+        for (const accessKey of response.AccessKeyMetadata) {
+            if (accessKey.AccessKeyId && isKeyOutOfDate({ createDate: accessKey.CreateDate })) {
+                await sendMessage({
+                    accessKeyId: accessKey.AccessKeyId,
+                    userName,
+                    region,
+                    awsAccountId,
                 })
             }
-        })
-    })
+        }
+    }
 }

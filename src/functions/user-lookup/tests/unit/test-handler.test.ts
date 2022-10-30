@@ -1,4 +1,3 @@
-// import { ScheduledEvent, Context } from "aws-lambda"
 import { lambdaHandler } from "../../app"
 
 import "aws-sdk-client-mock-jest"
@@ -13,6 +12,10 @@ const iamMock = mockClient(IAMClient)
 const sqsMock = mockClient(SQSClient)
 
 describe("user-lookup", function () {
+    beforeEach(() => {
+        iamMock.reset()
+        sqsMock.reset()
+    })
     test("can list users and send message", async () => {
         const event: ScheduledEvent = {
             id: "cdc73f9d-aea9-11e3-9d5a-835b769c0d9c",
@@ -73,5 +76,45 @@ describe("user-lookup", function () {
                 UserId: "AIDAJDPLRKLG7UEXAMPL2",
             }),
         })
+    })
+    test("returns nothing if no users are found", async () => {
+        const event: ScheduledEvent = {
+            id: "cdc73f9d-aea9-11e3-9d5a-835b769c0d9c",
+            "detail-type": "Scheduled Event",
+            source: "aws.events",
+            account: "123456789012",
+            time: "1970-01-01T00:00:00Z",
+            region: "us-east-2",
+            resources: ["arn:aws:events:us-east-1:123456789012:rule/ExampleRule"],
+            detail: {},
+            version: "1",
+        }
+        iamMock.on(ListUsersCommand).resolves({
+            Users: undefined,
+        })
+
+        const response = await lambdaHandler(event)
+
+        expect(response).toBeUndefined()
+    })
+    test("throws error if sdk calls fails", async () => {
+        const event: ScheduledEvent = {
+            id: "cdc73f9d-aea9-11e3-9d5a-835b769c0d9c",
+            "detail-type": "Scheduled Event",
+            source: "aws.events",
+            account: "123456789012",
+            time: "1970-01-01T00:00:00Z",
+            region: "us-east-2",
+            resources: ["arn:aws:events:us-east-1:123456789012:rule/ExampleRule"],
+            detail: {},
+            version: "1",
+        }
+        iamMock.on(ListUsersCommand).rejects({
+            message: "error",
+        })
+
+        console.error = jest.fn()
+
+        expect(() => lambdaHandler(event)).rejects.toThrow()
     })
 })

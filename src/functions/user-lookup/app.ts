@@ -6,8 +6,6 @@ import { SendMessageCommand, SQSClient } from "@aws-sdk/client-sqs"
 export const lambdaHandler = async (event: ScheduledEvent) => {
     const iamClient = new IAMClient({ region: event.region })
     const sqsClient = new SQSClient({ region: event.region })
-    console.log("Starting user-lookup function")
-
     try {
         const command = new ListUsersCommand({})
         const response = await iamClient.send(command)
