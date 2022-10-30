@@ -6,14 +6,13 @@ import { mockClient } from "aws-sdk-client-mock"
 
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses"
 import { DynamoDBClient, GetItemCommand } from "@aws-sdk/client-dynamodb"
-import { SQSEvent, Context } from "aws-lambda"
+import { SQSEvent } from "aws-lambda"
 
 const sesMock = mockClient(SESClient)
 const dynamoDBMock = mockClient(DynamoDBClient)
 
 describe("store-secrets", function () {
     let event: SQSEvent
-    let context: Context
     beforeEach(() => {
         sesMock.reset()
         dynamoDBMock.reset()
