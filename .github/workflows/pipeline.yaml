@@ -39,7 +39,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v2
-            - run: for d in ./*/ ; do (cd "$d" && yarn install); done
+            - run: for d in ./src/ ; do (cd "$d" && yarn install); done
             - run: |
                   yarn install && yarn test
 
