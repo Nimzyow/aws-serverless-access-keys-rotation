@@ -11,6 +11,14 @@ export default {
     },
     clearMocks: true,
     collectCoverage: true,
+    coverageThreshold: {
+        global: {
+            // branches: 90,
+            // functions: 90,
+            lines: 95,
+            // statements: 90,
+        },
+    },
     coverageDirectory: "coverage",
     coverageProvider: "v8",
     testMatch: ["**/tests/unit/*.test.ts"],
