@@ -1,47 +1,49 @@
-import { SNSEvent } from "aws-lambda"
+import { Context, SNSEvent } from "aws-lambda"
 
-import IAM from "aws-sdk/clients/iam"
+import { IAMClient, DeleteAccessKeyCommand, ListAccessKeysCommand } from "@aws-sdk/client-iam"
 
-const iam = new IAM()
+export const lambdaHandler = async (event: SNSEvent, context: Context) => {
+    const region = context.invokedFunctionArn.split(":")[3]
 
-export const lambdaHandler = async (event: SNSEvent) => {
-    return new Promise((resolve, reject) => {
-        event.Records.map(async (record) => {
-            const { UserName }: { UserName: string } = JSON.parse(record.Sns.Message)
-            iam.listAccessKeys({ UserName }, (err, data) => {
-                if (err) {
-                    reject(err)
-                } else if (data.AccessKeyMetadata.length > 0) {
-                    const sortedAccessKeys = data.AccessKeyMetadata.sort((a, b) => {
-                        if (a.CreateDate && b.CreateDate) {
-                            return b.CreateDate.getTime() - a.CreateDate.getTime()
-                        } else {
-                            return 0
-                        }
+    for (const record of event.Records) {
+        const iamClient = new IAMClient({ region })
+
+        const { UserName }: { UserName: unknown } = JSON.parse(record.Sns.Message)
+
+        if (typeof UserName !== "string") {
+            throw new Error("No users in SNS message")
+        }
+
+        const listAccessKeysCommand = new ListAccessKeysCommand({ UserName })
+
+        const response = await iamClient.send(listAccessKeysCommand)
+
+        const sortedAccessKeys = response.AccessKeyMetadata?.sort((a, b) => {
+            if (a.CreateDate && b.CreateDate) {
+                return b.CreateDate.getTime() - a.CreateDate.getTime()
+            } else {
+                return 0
+            }
+        })
+
+        const accessKeysToDelete = sortedAccessKeys?.slice(1)
+
+        if (accessKeysToDelete) {
+            for (const accessKey of accessKeysToDelete) {
+                if (accessKey.AccessKeyId) {
+                    const deleteAccessKeyCommand = new DeleteAccessKeyCommand({
+                        AccessKeyId: accessKey.AccessKeyId,
+                        UserName,
                     })
-                    const accessKeysToDelete = sortedAccessKeys.slice(1)
-
-                    for (const accessKey of accessKeysToDelete) {
-                        if (accessKey.AccessKeyId) {
-                            iam.deleteAccessKey(
-                                {
-                                    AccessKeyId: accessKey.AccessKeyId,
-                                    UserName,
-                                },
-                                (err, data) => {
-                                    if (err) {
-                                        console.error(err)
-                                        reject(err)
-                                    } else {
-                                        console.log("Access key deleted" + accessKey.AccessKeyId)
-                                        resolve("Access keys deleted")
-                                    }
-                                }
-                            )
-                        }
+                    try {
+                        await iamClient.send(deleteAccessKeyCommand)
+                        console.log(`Deleted access key ${accessKey.AccessKeyId}`)
+                    } catch (error) {
+                        console.error(error)
+                        throw new Error("Could not delete access key")
                     }
                 }
-            })
-        })
-    })
+            }
+        }
+    }
 }
