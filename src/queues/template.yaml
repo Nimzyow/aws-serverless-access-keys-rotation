@@ -41,7 +41,7 @@ Resources:
     StoreSecretsQueueDLQ:
         Type: AWS::SQS::Queue
         Properties:
-            QueueName: StoreSecretsQueueDLQ
+            QueueName: !SUB {AWS::StackName}-StoreSecretsQueueDLQ
             MessageRetentionPeriod: 1209600
 
     DeleteOldAccessKeyQueue:

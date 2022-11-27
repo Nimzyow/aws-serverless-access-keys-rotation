@@ -8,11 +8,7 @@ export const lambdaHandler = async (event: SNSEvent, context: Context) => {
     for (const record of event.Records) {
         const iamClient = new IAMClient({ region })
 
-        const { UserName }: { UserName: unknown } = JSON.parse(record.Sns.Message)
-
-        if (typeof UserName !== "string") {
-            throw new Error("No users in SNS message")
-        }
+        const { UserName }: { UserName: string } = JSON.parse(record.Sns.Message)
 
         const listAccessKeysCommand = new ListAccessKeysCommand({ UserName })
 
